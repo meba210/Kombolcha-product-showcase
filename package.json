@@ -1,0 +1,15 @@
+{
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^26.1.2",
+    "prisma": "^6.19.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "cloudinary": "^1.41.3",
+    "multer": "^2.2.0",
+    "multer-storage-cloudinary": "^4.0.0"
+  }
+}

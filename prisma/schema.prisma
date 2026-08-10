@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+
+model User {
+  user_id      Int      @id @default(autoincrement())
+  full_name    String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(100)
+  password     String   @db.VarChar(255)
+  phone_number String?  @db.VarChar(20)
+  role         Role     @default(BUYER)
+  created_at   DateTime @default(now())
+
+  buyer          Buyer?
+  factory        Factory?
+  admin          Admin?
+  sentMessages   Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+}
+
+enum Role {
+  BUYER
+  FACTORY
+  ADMIN
+}
+
+// ─── Buyer ───────────────────────────────────────────────────────────────────
+
+model Buyer {
+  buyer_id Int     @id @default(autoincrement())
+  user_id  Int     @unique
+  address  String? @db.Text
+
+  user            User             @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  orders          Order[]
+  carts           Cart[]
+  recommendations AIRecommendation[]
+  searchHistory   SearchHistory[]
+}
+
+// ─── Factory ─────────────────────────────────────────────────────────────────
+
+model Factory {
+  factory_id      Int             @id @default(autoincrement())
+  user_id         Int             @unique
+  factory_name    String          @db.VarChar(100)
+  location        String          @db.VarChar(100)
+  approval_status ApprovalStatus  @default(PENDING)
+
+  user     User      @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  products Product[]
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ─── Admin ───────────────────────────────────────────────────────────────────
+
+model Admin {
+  admin_id         Int    @id @default(autoincrement())
+  user_id          Int    @unique
+  permission_level String @db.VarChar(50)
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+// ─── Category ────────────────────────────────────────────────────────────────
+
+model Category {
+  category_id   Int       @id @default(autoincrement())
+  category_name String    @unique @db.VarChar(100)
+  description   String?   @db.Text
+
+  products Product[]
+}
+
+// ─── Product ─────────────────────────────────────────────────────────────────
+
+model Product {
+  product_id          Int               @id @default(autoincrement())
+  factory_id          Int
+  category_id         Int
+  product_name        String            @db.VarChar(100)
+  description         String?           @db.Text
+  price               Decimal           @db.Decimal(10, 2)
+  stock_quantity      Int               @default(0)
+  availability_status AvailabilityStatus @default(AVAILABLE)
+  image               String?           @db.VarChar(255)
+  created_at          DateTime          @default(now())
+
+  factory         Factory          @relation(fields: [factory_id], references: [factory_id], onDelete: Cascade)
+  category        Category         @relation(fields: [category_id], references: [category_id])
+  orderItems      OrderItem[]
+  cartItems       CartItem[]
+  recommendations AIRecommendation[]
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  OUT_OF_STOCK
+  DISCONTINUED
+}
+
+// ─── Message ─────────────────────────────────────────────────────────────────
+
+model Message {
+  message_id      Int           @id @default(autoincrement())
+  sender_id       Int
+  receiver_id     Int
+  message_content String        @db.Text
+  send_date       DateTime      @default(now())
+  message_status  MessageStatus @default(UNREAD)
+
+  sender   User @relation("SentMessages", fields: [sender_id], references: [user_id], onDelete: Cascade)
+  receiver User @relation("ReceivedMessages", fields: [receiver_id], references: [user_id], onDelete: Cascade)
+}
+
+enum MessageStatus {
+  UNREAD
+  READ
+}
+
+// ─── Order ───────────────────────────────────────────────────────────────────
+
+model Order {
+  order_id     Int         @id @default(autoincrement())
+  buyer_id     Int
+  order_date   DateTime    @default(now())
+  order_status OrderStatus @default(PENDING)
+  total_amount Decimal     @db.Decimal(10, 2)
+
+  buyer      Buyer       @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade)
+  orderItems OrderItem[]
+  payment    Payment?
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// ─── OrderItem ───────────────────────────────────────────────────────────────
+
+model OrderItem {
+  order_item_id Int     @id @default(autoincrement())
+  order_id      Int
+  product_id    Int
+  quantity      Int
+  price         Decimal @db.Decimal(10, 2)
+  subtotal      Decimal @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [product_id])
+}
+
+// ─── Payment ─────────────────────────────────────────────────────────────────
+
+model Payment {
+  payment_id            Int           @id @default(autoincrement())
+  order_id              Int           @unique
+  amount                Decimal       @db.Decimal(10, 2)
+  payment_date          DateTime      @default(now())
+  payment_status        PaymentStatus @default(PENDING)
+  transaction_reference String        @unique @db.VarChar(100)
+  settlement_status     SettlementStatus @default(UNSETTLED)
+  payment_method        String        @db.VarChar(50)
+
+  order Order @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum SettlementStatus {
+  UNSETTLED
+  SETTLED
+}
+
+// ─── Cart ────────────────────────────────────────────────────────────────────
+
+model Cart {
+  cart_id      Int      @id @default(autoincrement())
+  buyer_id     Int
+  created_date DateTime @default(now())
+  total_price  Decimal  @default(0) @db.Decimal(10, 2)
+
+  buyer     Buyer      @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade)
+  cartItems CartItem[]
+}
+
+// ─── CartItem ────────────────────────────────────────────────────────────────
+
+model CartItem {
+  cart_item_id Int     @id @default(autoincrement())
+  cart_id      Int
+  product_id   Int
+  quantity     Int
+  subtotal     Decimal @db.Decimal(10, 2)
+
+  cart    Cart    @relation(fields: [cart_id], references: [cart_id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [product_id])
+}
+
+// ─── AI Recommendation ───────────────────────────────────────────────────────
+
+model AIRecommendation {
+  recommendation_id    Int      @id @default(autoincrement())
+  buyer_id             Int
+  product_id           Int
+  recommended_category String?  @db.VarChar(100)
+  generated_date       DateTime @default(now())
+
+  buyer   Buyer   @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [product_id])
+}
+
+// ─── Search History ──────────────────────────────────────────────────────────
+
+model SearchHistory {
+  history_id       Int      @id @default(autoincrement())
+  buyer_id         Int
+  search_keyword   String   @db.VarChar(100)
+  viewed_category  String?  @db.VarChar(100)
+  search_date      DateTime @default(now())
+
+  buyer Buyer @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade)
+}

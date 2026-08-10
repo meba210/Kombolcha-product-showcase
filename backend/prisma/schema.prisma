@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model admin {
+  admin_id         Int    @id @default(autoincrement())
+  user_id          Int    @unique(map: "Admin_user_id_key")
+  permission_level String
+  user             user   @relation(fields: [user_id], references: [user_id], onDelete: Cascade, map: "Admin_user_id_fkey")
+}
+
+model airecommendation {
+  recommendation_id    Int      @id @default(autoincrement())
+  buyer_id             Int
+  product_id           Int
+  recommended_category String?
+  generated_date       DateTime @default(now())
+  buyer                buyer    @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade, map: "AIRecommendation_buyer_id_fkey")
+  product              product  @relation(fields: [product_id], references: [product_id], map: "AIRecommendation_product_id_fkey")
+
+  @@index([buyer_id], map: "AIRecommendation_buyer_id_fkey")
+  @@index([product_id], map: "AIRecommendation_product_id_fkey")
+}
+
+model buyer {
+  buyer_id         Int                @id @default(autoincrement())
+  user_id          Int                @unique(map: "Buyer_user_id_key")
+  address          String?
+  airecommendation airecommendation[]
+  user             user               @relation(fields: [user_id], references: [user_id], onDelete: Cascade, map: "Buyer_user_id_fkey")
+  cart             cart[]
+  order            order[]
+  searchhistory    searchhistory[]
+}
+
+model cart {
+  cart_id      Int        @id @default(autoincrement())
+  buyer_id     Int
+  created_date DateTime   @default(now())
+  total_price  Float      @default(0)
+  buyer        buyer      @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade, map: "Cart_buyer_id_fkey")
+  cartitem     cartitem[]
+
+  @@index([buyer_id], map: "Cart_buyer_id_fkey")
+}
+
+model cartitem {
+  cart_item_id Int     @id @default(autoincrement())
+  cart_id      Int
+  product_id   Int
+  quantity     Int
+  subtotal     Float
+  cart         cart    @relation(fields: [cart_id], references: [cart_id], onDelete: Cascade, map: "CartItem_cart_id_fkey")
+  product      product @relation(fields: [product_id], references: [product_id], map: "CartItem_product_id_fkey")
+
+  @@index([cart_id], map: "CartItem_cart_id_fkey")
+  @@index([product_id], map: "CartItem_product_id_fkey")
+}
+
+model category {
+  category_id   Int       @id @default(autoincrement())
+  category_name String    @unique(map: "Category_category_name_key")
+  description   String?
+  product       product[]
+}
+
+model factory {
+  factory_id      Int       @id @default(autoincrement())
+  user_id         Int       @unique(map: "Factory_user_id_key")
+  factory_name    String
+  location        String
+  approval_status String    @default("PENDING")
+  user            user      @relation(fields: [user_id], references: [user_id], onDelete: Cascade, map: "Factory_user_id_fkey")
+  product         product[]
+}
+
+model message {
+  message_id                     Int      @id @default(autoincrement())
+  sender_id                      Int
+  receiver_id                    Int
+  message_content                String
+  send_date                      DateTime @default(now())
+  message_status                 String   @default("UNREAD")
+  user_message_receiver_idTouser user     @relation("message_receiver_idTouser", fields: [receiver_id], references: [user_id], onDelete: Cascade, map: "Message_receiver_id_fkey")
+  user_message_sender_idTouser   user     @relation("message_sender_idTouser", fields: [sender_id], references: [user_id], onDelete: Cascade, map: "Message_sender_id_fkey")
+
+  @@index([receiver_id], map: "Message_receiver_id_fkey")
+  @@index([sender_id], map: "Message_sender_id_fkey")
+}
+
+model order {
+  order_id     Int         @id @default(autoincrement())
+  buyer_id     Int
+  order_date   DateTime    @default(now())
+  order_status String      @default("PENDING")
+  total_amount Float
+  buyer        buyer       @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade, map: "Order_buyer_id_fkey")
+  orderitem    orderitem[]
+  payment      payment?
+
+  @@index([buyer_id], map: "Order_buyer_id_fkey")
+}
+
+model orderitem {
+  order_item_id Int     @id @default(autoincrement())
+  order_id      Int
+  product_id    Int
+  quantity      Int
+  price         Float
+  subtotal      Float
+  order         order   @relation(fields: [order_id], references: [order_id], onDelete: Cascade, map: "OrderItem_order_id_fkey")
+  product       product @relation(fields: [product_id], references: [product_id], map: "OrderItem_product_id_fkey")
+
+  @@index([order_id], map: "OrderItem_order_id_fkey")
+  @@index([product_id], map: "OrderItem_product_id_fkey")
+}
+
+model payment {
+  payment_id            Int      @id @default(autoincrement())
+  order_id              Int      @unique(map: "Payment_order_id_key")
+  amount                Float
+  payment_date          DateTime @default(now())
+  payment_status        String   @default("PENDING")
+  transaction_reference String   @unique(map: "Payment_transaction_reference_key")
+  settlement_status     String   @default("UNSETTLED")
+  payment_method        String
+  order                 order    @relation(fields: [order_id], references: [order_id], onDelete: Cascade, map: "Payment_order_id_fkey")
+}
+
+model product {
+  product_id          Int                @id @default(autoincrement())
+  factory_id          Int
+  category_id         Int
+  product_name        String
+  description         String?
+  price               Float
+  stock_quantity      Int                @default(0)
+  availability_status String             @default("AVAILABLE")
+  image               String?
+  created_at          DateTime           @default(now())
+  airecommendation    airecommendation[]
+  cartitem            cartitem[]
+  orderitem           orderitem[]
+  category            category           @relation(fields: [category_id], references: [category_id], map: "Product_category_id_fkey")
+  factory             factory            @relation(fields: [factory_id], references: [factory_id], onDelete: Cascade, map: "Product_factory_id_fkey")
+
+  @@index([category_id], map: "Product_category_id_fkey")
+  @@index([factory_id], map: "Product_factory_id_fkey")
+}
+
+model searchhistory {
+  history_id      Int      @id @default(autoincrement())
+  buyer_id        Int
+  search_keyword  String
+  viewed_category String?
+  search_date     DateTime @default(now())
+  buyer           buyer    @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade, map: "SearchHistory_buyer_id_fkey")
+
+  @@index([buyer_id], map: "SearchHistory_buyer_id_fkey")
+}
+
+model user {
+  user_id                           Int       @id @default(autoincrement())
+  full_name                         String
+  email                             String    @unique(map: "User_email_key")
+  password                          String
+  phone_number                      String?
+  role                              String    @default("BUYER")
+  created_at                        DateTime  @default(now())
+  admin                             admin?
+  buyer                             buyer?
+  factory                           factory?
+  message_message_receiver_idTouser message[] @relation("message_receiver_idTouser")
+  message_message_sender_idTouser   message[] @relation("message_sender_idTouser")
+}
