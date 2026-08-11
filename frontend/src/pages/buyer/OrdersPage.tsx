@@ -59,7 +59,7 @@ export default function OrdersPage() {
                     <StatusBadge status={order.order_status} />
                   </div>
                   <p className="text-sm text-slate-500 truncate">
-                    {order.orderitem
+                    {order.orderItems
                       .map((i: any) => i.product.product_name)
                       .join(', ')}
                   </p>

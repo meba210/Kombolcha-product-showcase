@@ -10,21 +10,46 @@ export const sendMessage = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { receiver_id, message_content } = req.body;
+    const {
+      receiver_id,
+      message_content,
+      attachment_url,
+      product_id,
+      product_name,
+      product_image,
+    } = req.body;
+
+    const receiverId = parseInt(receiver_id);
+    if (Number.isNaN(receiverId)) {
+      res.status(400).json({ success: false, message: 'Invalid receiver id' });
+      return;
+    }
 
     const receiver = await prisma.user.findUnique({
-      where: { user_id: parseInt(receiver_id) },
+      where: { user_id: receiverId },
     });
     if (!receiver) {
       res.status(404).json({ success: false, message: 'Receiver not found' });
       return;
     }
 
+    if (!message_content && !attachment_url) {
+      res.status(400).json({
+        success: false,
+        message: 'Message text or image attachment is required',
+      });
+      return;
+    }
+
     const message = await prisma.message.create({
       data: {
         sender_id: req.user!.user_id,
-        receiver_id: parseInt(receiver_id),
-        message_content,
+        receiver_id: receiverId,
+        message_content: message_content || '',
+        attachment_url: attachment_url || undefined,
+        product_id: product_id ? parseInt(product_id) : undefined,
+        product_name: product_name || undefined,
+        product_image: product_image || undefined,
         message_status: 'UNREAD',
       },
     });
@@ -35,6 +60,40 @@ export const sendMessage = async (
   } catch (error) {
     console.error('SendMessage error:', error);
     res.status(500).json({ success: false, message: 'Failed to send message' });
+  }
+};
+
+export const uploadMessageImage = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.file) {
+      res
+        .status(400)
+        .json({ success: false, message: 'No image file uploaded' });
+      return;
+    }
+
+    const file = req.file as Express.Multer.File & {
+      secure_url?: string;
+      url?: string;
+      path?: string;
+      filename?: string;
+    };
+
+    const imageUrl = file.secure_url || file.url || file.path;
+    if (!imageUrl) {
+      res
+        .status(500)
+        .json({ success: false, message: 'Uploaded image URL not available' });
+      return;
+    }
+
+    res.json({ success: true, url: imageUrl });
+  } catch (error) {
+    console.error('UploadMessageImage error:', error);
+    res.status(500).json({ success: false, message: 'Failed to upload image' });
   }
 };
 

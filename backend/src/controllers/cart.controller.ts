@@ -12,7 +12,10 @@ const getBuyerCart = async (buyerId: number) => {
       cartitem: {
         include: {
           product: {
-            include: { factory: { select: { factory_name: true } }, category: true },
+            include: {
+              factory: { select: { factory_name: true } },
+              category: true,
+            },
           },
         },
       },
@@ -27,7 +30,10 @@ const getBuyerCart = async (buyerId: number) => {
         cartitem: {
           include: {
             product: {
-              include: { factory: { select: { factory_name: true } }, category: true },
+              include: {
+                factory: { select: { factory_name: true } },
+                category: true,
+              },
             },
           },
         },
@@ -35,14 +41,27 @@ const getBuyerCart = async (buyerId: number) => {
     });
   }
 
-  return cart;
+  return transformCart(cart);
 };
 
-export const getCart = async (req: AuthRequest, res: Response): Promise<void> => {
+const transformCart = (cart: any) => ({
+  ...cart,
+  cartItems: cart?.cartitem ?? [],
+  cartitem: undefined,
+});
+
+export const getCart = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
-    const buyer = await prisma.buyer.findUnique({ where: { user_id: req.user!.user_id } });
+    const buyer = await prisma.buyer.findUnique({
+      where: { user_id: req.user!.user_id },
+    });
     if (!buyer) {
-      res.status(404).json({ success: false, message: 'Buyer profile not found' });
+      res
+        .status(404)
+        .json({ success: false, message: 'Buyer profile not found' });
       return;
     }
 
@@ -54,23 +73,34 @@ export const getCart = async (req: AuthRequest, res: Response): Promise<void> =>
   }
 };
 
-export const addToCart = async (req: AuthRequest, res: Response): Promise<void> => {
+export const addToCart = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { product_id, quantity = 1 } = req.body;
 
-    const buyer = await prisma.buyer.findUnique({ where: { user_id: req.user!.user_id } });
+    const buyer = await prisma.buyer.findUnique({
+      where: { user_id: req.user!.user_id },
+    });
     if (!buyer) {
-      res.status(404).json({ success: false, message: 'Buyer profile not found' });
+      res
+        .status(404)
+        .json({ success: false, message: 'Buyer profile not found' });
       return;
     }
 
-    const product = await prisma.product.findUnique({ where: { product_id: parseInt(product_id) } });
+    const product = await prisma.product.findUnique({
+      where: { product_id: parseInt(product_id) },
+    });
     if (!product) {
       res.status(404).json({ success: false, message: 'Product not found' });
       return;
     }
     if (product.availability_status !== 'AVAILABLE') {
-      res.status(400).json({ success: false, message: 'Product is not available' });
+      res
+        .status(400)
+        .json({ success: false, message: 'Product is not available' });
       return;
     }
     if (product.stock_quantity < parseInt(quantity)) {
@@ -78,9 +108,13 @@ export const addToCart = async (req: AuthRequest, res: Response): Promise<void> 
       return;
     }
 
-    let cart = await prisma.cart.findFirst({ where: { buyer_id: buyer.buyer_id } });
+    let cart = await prisma.cart.findFirst({
+      where: { buyer_id: buyer.buyer_id },
+    });
     if (!cart) {
-      cart = await prisma.cart.create({ data: { buyer_id: buyer.buyer_id, total_price: 0 } });
+      cart = await prisma.cart.create({
+        data: { buyer_id: buyer.buyer_id, total_price: 0 },
+      });
     }
 
     // Check if item already in cart
@@ -110,24 +144,43 @@ export const addToCart = async (req: AuthRequest, res: Response): Promise<void> 
     }
 
     // Recalculate cart total
-    const allItems = await prisma.cartitem.findMany({ where: { cart_id: cart.cart_id } });
-    const total = allItems.reduce((sum, item) => sum + Number(item.subtotal), 0);
-    await prisma.cart.update({ where: { cart_id: cart.cart_id }, data: { total_price: total } });
+    const allItems = await prisma.cartitem.findMany({
+      where: { cart_id: cart.cart_id },
+    });
+    const total = allItems.reduce(
+      (sum, item) => sum + Number(item.subtotal),
+      0
+    );
+    await prisma.cart.update({
+      where: { cart_id: cart.cart_id },
+      data: { total_price: total },
+    });
 
     const updatedCart = await getBuyerCart(buyer.buyer_id);
-    res.json({ success: true, message: 'Item added to cart', cart: updatedCart });
+    res.json({
+      success: true,
+      message: 'Item added to cart',
+      cart: updatedCart,
+    });
   } catch (error) {
     console.error('AddToCart error:', error);
-    res.status(500).json({ success: false, message: 'Failed to add item to cart' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to add item to cart' });
   }
 };
 
-export const updateCartItem = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateCartItem = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { item_id } = req.params;
     const { quantity } = req.body;
 
-    const buyer = await prisma.buyer.findUnique({ where: { user_id: req.user!.user_id } });
+    const buyer = await prisma.buyer.findUnique({
+      where: { user_id: req.user!.user_id },
+    });
     if (!buyer) {
       res.status(404).json({ success: false, message: 'Buyer not found' });
       return;
@@ -145,7 +198,9 @@ export const updateCartItem = async (req: AuthRequest, res: Response): Promise<v
 
     const qty = parseInt(quantity);
     if (qty <= 0) {
-      await prisma.cartitem.delete({ where: { cart_item_id: parseInt(item_id) } });
+      await prisma.cartitem.delete({
+        where: { cart_item_id: parseInt(item_id) },
+      });
     } else {
       const subtotal = Number(cartItem.product.price) * qty;
       await prisma.cartitem.update({
@@ -155,9 +210,17 @@ export const updateCartItem = async (req: AuthRequest, res: Response): Promise<v
     }
 
     // Recalculate total
-    const allItems = await prisma.cartitem.findMany({ where: { cart_id: cartItem.cart_id } });
-    const total = allItems.reduce((sum, item) => sum + Number(item.subtotal), 0);
-    await prisma.cart.update({ where: { cart_id: cartItem.cart_id }, data: { total_price: total } });
+    const allItems = await prisma.cartitem.findMany({
+      where: { cart_id: cartItem.cart_id },
+    });
+    const total = allItems.reduce(
+      (sum, item) => sum + Number(item.subtotal),
+      0
+    );
+    await prisma.cart.update({
+      where: { cart_id: cartItem.cart_id },
+      data: { total_price: total },
+    });
 
     const updatedCart = await getBuyerCart(buyer.buyer_id);
     res.json({ success: true, message: 'Cart updated', cart: updatedCart });
@@ -167,11 +230,16 @@ export const updateCartItem = async (req: AuthRequest, res: Response): Promise<v
   }
 };
 
-export const removeCartItem = async (req: AuthRequest, res: Response): Promise<void> => {
+export const removeCartItem = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { item_id } = req.params;
 
-    const buyer = await prisma.buyer.findUnique({ where: { user_id: req.user!.user_id } });
+    const buyer = await prisma.buyer.findUnique({
+      where: { user_id: req.user!.user_id },
+    });
     if (!buyer) {
       res.status(404).json({ success: false, message: 'Buyer not found' });
       return;
@@ -187,32 +255,56 @@ export const removeCartItem = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    await prisma.cartitem.delete({ where: { cart_item_id: parseInt(item_id) } });
+    await prisma.cartitem.delete({
+      where: { cart_item_id: parseInt(item_id) },
+    });
 
-    const allItems = await prisma.cartitem.findMany({ where: { cart_id: cartItem.cart_id } });
-    const total = allItems.reduce((sum, item) => sum + Number(item.subtotal), 0);
-    await prisma.cart.update({ where: { cart_id: cartItem.cart_id }, data: { total_price: total } });
+    const allItems = await prisma.cartitem.findMany({
+      where: { cart_id: cartItem.cart_id },
+    });
+    const total = allItems.reduce(
+      (sum, item) => sum + Number(item.subtotal),
+      0
+    );
+    await prisma.cart.update({
+      where: { cart_id: cartItem.cart_id },
+      data: { total_price: total },
+    });
 
     const updatedCart = await getBuyerCart(buyer.buyer_id);
-    res.json({ success: true, message: 'Item removed from cart', cart: updatedCart });
+    res.json({
+      success: true,
+      message: 'Item removed from cart',
+      cart: updatedCart,
+    });
   } catch (error) {
     console.error('RemoveCartItem error:', error);
     res.status(500).json({ success: false, message: 'Failed to remove item' });
   }
 };
 
-export const clearCart = async (req: AuthRequest, res: Response): Promise<void> => {
+export const clearCart = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
-    const buyer = await prisma.buyer.findUnique({ where: { user_id: req.user!.user_id } });
+    const buyer = await prisma.buyer.findUnique({
+      where: { user_id: req.user!.user_id },
+    });
     if (!buyer) {
       res.status(404).json({ success: false, message: 'Buyer not found' });
       return;
     }
 
-    const cart = await prisma.cart.findFirst({ where: { buyer_id: buyer.buyer_id } });
+    const cart = await prisma.cart.findFirst({
+      where: { buyer_id: buyer.buyer_id },
+    });
     if (cart) {
       await prisma.cartitem.deleteMany({ where: { cart_id: cart.cart_id } });
-      await prisma.cart.update({ where: { cart_id: cart.cart_id }, data: { total_price: 0 } });
+      await prisma.cart.update({
+        where: { cart_id: cart.cart_id },
+        data: { total_price: 0 },
+      });
     }
 
     res.json({ success: true, message: 'Cart cleared' });

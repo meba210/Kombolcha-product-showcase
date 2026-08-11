@@ -19,6 +19,7 @@ export const getProducts = async (
       factory_id,
       page = '1',
       limit = '12',
+      admin_id,
     } = req.query;
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -34,6 +35,7 @@ export const getProducts = async (
     }
     if (category_id) where.category_id = parseInt(category_id as string);
     if (factory_id) where.factory_id = parseInt(factory_id as string);
+    if (admin_id) where.admin_id = parseInt(admin_id as string);
     if (availability) where.availability_status = availability;
     if (min_price || max_price) {
       where.price = {
@@ -90,7 +92,19 @@ export const getProductById = async (
         factory: {
           include: {
             user: {
-              select: { full_name: true, email: true, phone_number: true },
+              select: { full_name: true, email: true, phone_number: true,user_id: true},
+            },
+          },
+        },
+        admin: {
+          include: {
+            user: {
+              select: {
+                user_id: true,
+                full_name: true,
+                email: true,
+                phone_number: true,
+              },
             },
           },
         },
@@ -154,7 +168,7 @@ export const createProduct = async (
       ? file.secure_url || file.url || file.path || `/uploads/${file.filename}`
       : null;
 
-   let factory_id: number | null = null;
+    let factory_id: number | null = null;
 
     if (req.user!.role === 'FACTORY') {
       const factory = await prisma.factory.findUnique({
@@ -174,11 +188,9 @@ export const createProduct = async (
       }
       factory_id = factory.factory_id;
     } else if (req.user!.role === 'ADMIN') {
-  // Factory is optional for admin
-  factory_id = req.body.factory_id
-    ? parseInt(req.body.factory_id)
-    : null;
-}
+      // Factory is optional for admin
+      factory_id = req.body.factory_id ? parseInt(req.body.factory_id) : null;
+    }
 
     const admin =
       req.user!.role === 'ADMIN'
@@ -187,7 +199,7 @@ export const createProduct = async (
           })
         : null;
 
-        const factory =
+    const factory =
       req.user!.role === 'FACTORY'
         ? await prisma.factory.findUnique({
             where: { user_id: req.user!.user_id },

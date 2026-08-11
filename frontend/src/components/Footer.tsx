@@ -64,7 +64,7 @@ export default function Footer() {
 
         <div className="border-t border-slate-800 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} Kombolcha Showcase Platform. Wollo University — Software Engineering.
+            © {new Date().getFullYear()} Kombolcha Showcase Platform.
           </p>
           <p className="text-xs text-slate-500">
             Built with React, Node.js & AI

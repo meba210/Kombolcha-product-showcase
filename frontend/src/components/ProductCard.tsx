@@ -33,7 +33,10 @@ export default function ProductCard({ product }: ProductCardProps) {
       return;
     }
     try {
-      const res = await api.post('/cart/add', { product_id: product.product_id, quantity: 1 });
+      const res = await api.post('/cart/add', {
+        product_id: Number(product.product_id),
+        quantity: Number(1),
+      });
       setCart(res.data.cart);
       toast.success('Added to cart');
     } catch (err: unknown) {
@@ -45,7 +48,10 @@ export default function ProductCard({ product }: ProductCardProps) {
   const isAvailable = product.availability_status === 'AVAILABLE';
 
   return (
-    <Link to={`/products/${product.product_id}`} className="card group hover:shadow-md transition-shadow duration-200">
+    <Link
+      to={`/products/${product.product_id}`}
+      className="card group hover:shadow-md transition-shadow duration-200"
+    >
       {/* Image */}
       <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
         {product.image ? (
@@ -66,7 +72,12 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
         {/* Availability badge */}
         <div className="absolute top-2 right-2">
-          <span className={clsx('badge text-xs', isAvailable ? 'badge-green' : 'badge-red')}>
+          <span
+            className={clsx(
+              'badge text-xs',
+              isAvailable ? 'badge-green' : 'badge-red'
+            )}
+          >
             {isAvailable ? 'In Stock' : 'Out of Stock'}
           </span>
         </div>
@@ -74,11 +85,15 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       {/* Content */}
       <div className="p-4">
-        <p className="text-xs text-primary-600 font-medium mb-1">{product.category.category_name}</p>
+        <p className="text-xs text-primary-600 font-medium mb-1">
+          {product.category.category_name}
+        </p>
         <h3 className="font-semibold text-slate-900 text-sm leading-tight mb-1 line-clamp-2">
           {product.product_name}
         </h3>
-        <p className="text-xs text-slate-500 mb-3 truncate">{product.factory.factory_name}</p>
+        <p className="text-xs text-slate-500 mb-3 truncate">
+          {product.factory?.factory_name || 'No Factory'}
+        </p>
 
         <div className="flex items-center justify-between">
           <span className="text-lg font-bold text-slate-900">

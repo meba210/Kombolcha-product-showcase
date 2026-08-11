@@ -25,13 +25,13 @@ export const placeOrder = async (
       include: { cartitem: { include: { product: true } } },
     })) as any;
 
-    if (!cart || cart.cartItems.length === 0) {
+    if (!cart || cart.cartitem.length === 0) {
       res.status(400).json({ success: false, message: 'Cart is empty' });
       return;
     }
 
     // Validate stock for all items
-    for (const item of cart.cartItems) {
+    for (const item of cart.cartitem) {
       if (item.product.stock_quantity < item.quantity) {
         res.status(400).json({
           success: false,
@@ -51,7 +51,7 @@ export const placeOrder = async (
           total_amount: totalAmount,
           order_status: 'PENDING',
           orderitem: {
-            create: cart.cartItems.map((item: any) => ({
+            create: cart.cartitem.map((item: any) => ({
               product_id: item.product_id,
               quantity: item.quantity,
               price: item.product.price,
