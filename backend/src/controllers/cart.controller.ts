@@ -9,7 +9,7 @@ const getBuyerCart = async (buyerId: number) => {
   let cart = await prisma.cart.findFirst({
     where: { buyer_id: buyerId },
     include: {
-      cartItems: {
+      cartitem: {
         include: {
           product: {
             include: { factory: { select: { factory_name: true } }, category: true },
@@ -24,7 +24,7 @@ const getBuyerCart = async (buyerId: number) => {
     cart = await prisma.cart.create({
       data: { buyer_id: buyerId, total_price: 0 },
       include: {
-        cartItems: {
+        cartitem: {
           include: {
             product: {
               include: { factory: { select: { factory_name: true } }, category: true },
@@ -84,7 +84,7 @@ export const addToCart = async (req: AuthRequest, res: Response): Promise<void> 
     }
 
     // Check if item already in cart
-    const existingItem = await prisma.cartItem.findFirst({
+    const existingItem = await prisma.cartitem.findFirst({
       where: { cart_id: cart.cart_id, product_id: parseInt(product_id) },
     });
 
@@ -94,12 +94,12 @@ export const addToCart = async (req: AuthRequest, res: Response): Promise<void> 
     if (existingItem) {
       const newQty = existingItem.quantity + qty;
       const newSubtotal = Number(product.price) * newQty;
-      await prisma.cartItem.update({
+      await prisma.cartitem.update({
         where: { cart_item_id: existingItem.cart_item_id },
         data: { quantity: newQty, subtotal: newSubtotal },
       });
     } else {
-      await prisma.cartItem.create({
+      await prisma.cartitem.create({
         data: {
           cart_id: cart.cart_id,
           product_id: parseInt(product_id),
@@ -110,7 +110,7 @@ export const addToCart = async (req: AuthRequest, res: Response): Promise<void> 
     }
 
     // Recalculate cart total
-    const allItems = await prisma.cartItem.findMany({ where: { cart_id: cart.cart_id } });
+    const allItems = await prisma.cartitem.findMany({ where: { cart_id: cart.cart_id } });
     const total = allItems.reduce((sum, item) => sum + Number(item.subtotal), 0);
     await prisma.cart.update({ where: { cart_id: cart.cart_id }, data: { total_price: total } });
 
@@ -133,7 +133,7 @@ export const updateCartItem = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    const cartItem = await prisma.cartItem.findUnique({
+    const cartItem = await prisma.cartitem.findUnique({
       where: { cart_item_id: parseInt(item_id) },
       include: { product: true, cart: true },
     });
@@ -145,17 +145,17 @@ export const updateCartItem = async (req: AuthRequest, res: Response): Promise<v
 
     const qty = parseInt(quantity);
     if (qty <= 0) {
-      await prisma.cartItem.delete({ where: { cart_item_id: parseInt(item_id) } });
+      await prisma.cartitem.delete({ where: { cart_item_id: parseInt(item_id) } });
     } else {
       const subtotal = Number(cartItem.product.price) * qty;
-      await prisma.cartItem.update({
+      await prisma.cartitem.update({
         where: { cart_item_id: parseInt(item_id) },
         data: { quantity: qty, subtotal },
       });
     }
 
     // Recalculate total
-    const allItems = await prisma.cartItem.findMany({ where: { cart_id: cartItem.cart_id } });
+    const allItems = await prisma.cartitem.findMany({ where: { cart_id: cartItem.cart_id } });
     const total = allItems.reduce((sum, item) => sum + Number(item.subtotal), 0);
     await prisma.cart.update({ where: { cart_id: cartItem.cart_id }, data: { total_price: total } });
 
@@ -177,7 +177,7 @@ export const removeCartItem = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    const cartItem = await prisma.cartItem.findUnique({
+    const cartItem = await prisma.cartitem.findUnique({
       where: { cart_item_id: parseInt(item_id) },
       include: { cart: true },
     });
@@ -187,9 +187,9 @@ export const removeCartItem = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    await prisma.cartItem.delete({ where: { cart_item_id: parseInt(item_id) } });
+    await prisma.cartitem.delete({ where: { cart_item_id: parseInt(item_id) } });
 
-    const allItems = await prisma.cartItem.findMany({ where: { cart_id: cartItem.cart_id } });
+    const allItems = await prisma.cartitem.findMany({ where: { cart_id: cartItem.cart_id } });
     const total = allItems.reduce((sum, item) => sum + Number(item.subtotal), 0);
     await prisma.cart.update({ where: { cart_id: cartItem.cart_id }, data: { total_price: total } });
 
@@ -211,7 +211,7 @@ export const clearCart = async (req: AuthRequest, res: Response): Promise<void> 
 
     const cart = await prisma.cart.findFirst({ where: { buyer_id: buyer.buyer_id } });
     if (cart) {
-      await prisma.cartItem.deleteMany({ where: { cart_id: cart.cart_id } });
+      await prisma.cartitem.deleteMany({ where: { cart_id: cart.cart_id } });
       await prisma.cart.update({ where: { cart_id: cart.cart_id }, data: { total_price: 0 } });
     }
 

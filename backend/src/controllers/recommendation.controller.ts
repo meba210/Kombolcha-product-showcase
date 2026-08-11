@@ -18,7 +18,7 @@ export const getRecommendations = async (req: AuthRequest, res: Response): Promi
     }
 
     // Get buyer's search history
-    const searchHistory = await prisma.searchHistory.findMany({
+    const searchHistory = await prisma.searchhistory.findMany({
       where: { buyer_id: buyer.buyer_id },
       orderBy: { search_date: 'desc' },
       take: 20,
@@ -55,7 +55,7 @@ export const getRecommendations = async (req: AuthRequest, res: Response): Promi
         });
 
         // Save recommendations to DB
-        await prisma.aIRecommendation.createMany({
+        await prisma.airecommendation.createMany({
           data: productIds.map((pid) => ({
             buyer_id: buyer.buyer_id,
             product_id: pid,
@@ -70,7 +70,7 @@ export const getRecommendations = async (req: AuthRequest, res: Response): Promi
 
     // Fallback: popular products based on order frequency
     if (!recommendedProducts || recommendedProducts.length === 0) {
-      const popular = await prisma.orderItem.groupBy({
+      const popular = await prisma.orderitem.groupBy({
         by: ['product_id'],
         _count: { product_id: true },
         orderBy: { _count: { product_id: 'desc' } },
@@ -113,7 +113,7 @@ export const logSearch = async (req: AuthRequest, res: Response): Promise<void> 
       return;
     }
 
-    await prisma.searchHistory.create({
+    await prisma.searchhistory.create({
       data: {
         buyer_id: buyer.buyer_id,
         search_keyword,

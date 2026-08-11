@@ -5,11 +5,16 @@ import { AuthRequest } from '../middleware/auth.middleware';
 /**
  * Send a message to another user.
  */
-export const sendMessage = async (req: AuthRequest, res: Response): Promise<void> => {
+export const sendMessage = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { receiver_id, message_content } = req.body;
 
-    const receiver = await prisma.user.findUnique({ where: { user_id: parseInt(receiver_id) } });
+    const receiver = await prisma.user.findUnique({
+      where: { user_id: parseInt(receiver_id) },
+    });
     if (!receiver) {
       res.status(404).json({ success: false, message: 'Receiver not found' });
       return;
@@ -22,13 +27,11 @@ export const sendMessage = async (req: AuthRequest, res: Response): Promise<void
         message_content,
         message_status: 'UNREAD',
       },
-      include: {
-        sender: { select: { full_name: true, email: true, role: true } },
-        receiver: { select: { full_name: true, email: true, role: true } },
-      },
     });
 
-    res.status(201).json({ success: true, message: 'Message sent', data: message });
+    res
+      .status(201)
+      .json({ success: true, message: 'Message sent', data: message });
   } catch (error) {
     console.error('SendMessage error:', error);
     res.status(500).json({ success: false, message: 'Failed to send message' });
@@ -38,7 +41,10 @@ export const sendMessage = async (req: AuthRequest, res: Response): Promise<void
 /**
  * Get conversation between current user and another user.
  */
-export const getConversation = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getConversation = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { user_id } = req.params;
     const currentUserId = req.user!.user_id;
@@ -49,10 +55,6 @@ export const getConversation = async (req: AuthRequest, res: Response): Promise<
           { sender_id: currentUserId, receiver_id: parseInt(user_id) },
           { sender_id: parseInt(user_id), receiver_id: currentUserId },
         ],
-      },
-      include: {
-        sender: { select: { full_name: true, role: true } },
-        receiver: { select: { full_name: true, role: true } },
       },
       orderBy: { send_date: 'asc' },
     });
@@ -70,14 +72,19 @@ export const getConversation = async (req: AuthRequest, res: Response): Promise<
     res.json({ success: true, messages });
   } catch (error) {
     console.error('GetConversation error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch conversation' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to fetch conversation' });
   }
 };
 
 /**
  * Get all conversations (inbox) for the current user.
  */
-export const getInbox = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getInbox = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const userId = req.user!.user_id;
 
@@ -116,7 +123,11 @@ export const getInbox = async (req: AuthRequest, res: Response): Promise<void> =
         });
 
         const unreadCount = await prisma.message.count({
-          where: { sender_id: partnerId, receiver_id: userId, message_status: 'UNREAD' },
+          where: {
+            sender_id: partnerId,
+            receiver_id: userId,
+            message_status: 'UNREAD',
+          },
         });
 
         return { partner, lastMessage, unreadCount };
@@ -140,13 +151,18 @@ export const getInbox = async (req: AuthRequest, res: Response): Promise<void> =
 /**
  * Get unread message count.
  */
-export const getUnreadCount = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getUnreadCount = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const count = await prisma.message.count({
       where: { receiver_id: req.user!.user_id, message_status: 'UNREAD' },
     });
     res.json({ success: true, count });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch unread count' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to fetch unread count' });
   }
 };

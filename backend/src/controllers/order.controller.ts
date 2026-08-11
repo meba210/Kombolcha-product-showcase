@@ -5,18 +5,25 @@ import { AuthRequest } from '../middleware/auth.middleware';
 /**
  * Place an order from the buyer's cart.
  */
-export const placeOrder = async (req: AuthRequest, res: Response): Promise<void> => {
+export const placeOrder = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
-    const buyer = await prisma.buyer.findUnique({ where: { user_id: req.user!.user_id } });
+    const buyer = await prisma.buyer.findUnique({
+      where: { user_id: req.user!.user_id },
+    });
     if (!buyer) {
-      res.status(404).json({ success: false, message: 'Buyer profile not found' });
+      res
+        .status(404)
+        .json({ success: false, message: 'Buyer profile not found' });
       return;
     }
 
-    const cart = await prisma.cart.findFirst({
+    const cart = (await prisma.cart.findFirst({
       where: { buyer_id: buyer.buyer_id },
-      include: { cartItems: { include: { product: true } } },
-    });
+      include: { cartitem: { include: { product: true } } },
+    })) as any;
 
     if (!cart || cart.cartItems.length === 0) {
       res.status(400).json({ success: false, message: 'Cart is empty' });
@@ -43,8 +50,8 @@ export const placeOrder = async (req: AuthRequest, res: Response): Promise<void>
           buyer_id: buyer.buyer_id,
           total_amount: totalAmount,
           order_status: 'PENDING',
-          orderItems: {
-            create: cart.cartItems.map((item) => ({
+          orderitem: {
+            create: cart.cartItems.map((item: any) => ({
               product_id: item.product_id,
               quantity: item.quantity,
               price: item.product.price,
@@ -52,7 +59,7 @@ export const placeOrder = async (req: AuthRequest, res: Response): Promise<void>
             })),
           },
         },
-        include: { orderItems: { include: { product: true } } },
+        include: { orderitem: { include: { product: true } } },
       });
 
       // Deduct stock
@@ -64,13 +71,18 @@ export const placeOrder = async (req: AuthRequest, res: Response): Promise<void>
       }
 
       // Clear cart
-      await tx.cartItem.deleteMany({ where: { cart_id: cart.cart_id } });
-      await tx.cart.update({ where: { cart_id: cart.cart_id }, data: { total_price: 0 } });
+      await tx.cartitem.deleteMany({ where: { cart_id: cart.cart_id } });
+      await tx.cart.update({
+        where: { cart_id: cart.cart_id },
+        data: { total_price: 0 },
+      });
 
       return newOrder;
     });
 
-    res.status(201).json({ success: true, message: 'Order placed successfully', order });
+    res
+      .status(201)
+      .json({ success: true, message: 'Order placed successfully', order });
   } catch (error) {
     console.error('PlaceOrder error:', error);
     res.status(500).json({ success: false, message: 'Failed to place order' });
@@ -80,9 +92,14 @@ export const placeOrder = async (req: AuthRequest, res: Response): Promise<void>
 /**
  * Get orders for the authenticated buyer.
  */
-export const getBuyerOrders = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getBuyerOrders = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
-    const buyer = await prisma.buyer.findUnique({ where: { user_id: req.user!.user_id } });
+    const buyer = await prisma.buyer.findUnique({
+      where: { user_id: req.user!.user_id },
+    });
     if (!buyer) {
       res.status(404).json({ success: false, message: 'Buyer not found' });
       return;
@@ -91,7 +108,7 @@ export const getBuyerOrders = async (req: AuthRequest, res: Response): Promise<v
     const orders = await prisma.order.findMany({
       where: { buyer_id: buyer.buyer_id },
       include: {
-        orderItems: {
+        orderitem: {
           include: {
             product: {
               include: { factory: { select: { factory_name: true } } },
@@ -113,7 +130,10 @@ export const getBuyerOrders = async (req: AuthRequest, res: Response): Promise<v
 /**
  * Get all orders (Admin) or factory-specific orders (Factory).
  */
-export const getAllOrders = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getAllOrders = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { status, page = '1', limit = '20' } = req.query;
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -122,12 +142,16 @@ export const getAllOrders = async (req: AuthRequest, res: Response): Promise<voi
     if (status) where.order_status = status;
 
     if (req.user!.role === 'FACTORY') {
-      const factory = await prisma.factory.findUnique({ where: { user_id: req.user!.user_id } });
+      const factory = await prisma.factory.findUnique({
+        where: { user_id: req.user!.user_id },
+      });
       if (!factory) {
         res.status(404).json({ success: false, message: 'Factory not found' });
         return;
       }
-      where.orderItems = { some: { product: { factory_id: factory.factory_id } } };
+      where.orderitem = {
+        some: { product: { factory_id: factory.factory_id } },
+      };
     }
 
     const [orders, total] = await Promise.all([
@@ -136,8 +160,10 @@ export const getAllOrders = async (req: AuthRequest, res: Response): Promise<voi
         skip,
         take: parseInt(limit as string),
         include: {
-          buyer: { include: { user: { select: { full_name: true, email: true } } } },
-          orderItems: { include: { product: true } },
+          buyer: {
+            include: { user: { select: { full_name: true, email: true } } },
+          },
+          orderitem: { include: { product: true } },
           payment: true,
         },
         orderBy: { order_date: 'desc' },
@@ -148,7 +174,11 @@ export const getAllOrders = async (req: AuthRequest, res: Response): Promise<voi
     res.json({
       success: true,
       orders,
-      pagination: { total, page: parseInt(page as string), totalPages: Math.ceil(total / parseInt(limit as string)) },
+      pagination: {
+        total,
+        page: parseInt(page as string),
+        totalPages: Math.ceil(total / parseInt(limit as string)),
+      },
     });
   } catch (error) {
     console.error('GetAllOrders error:', error);
@@ -159,12 +189,17 @@ export const getAllOrders = async (req: AuthRequest, res: Response): Promise<voi
 /**
  * Update order status (Factory or Admin).
  */
-export const updateOrderStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateOrderStatus = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const { order_status } = req.body;
 
-    const order = await prisma.order.findUnique({ where: { order_id: parseInt(id) } });
+    const order = await prisma.order.findUnique({
+      where: { order_id: parseInt(id) },
+    });
     if (!order) {
       res.status(404).json({ success: false, message: 'Order not found' });
       return;
@@ -173,31 +208,49 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response): Promis
     const updated = await prisma.order.update({
       where: { order_id: parseInt(id) },
       data: { order_status },
-      include: { orderItems: { include: { product: true } }, payment: true },
+      include: { orderitem: { include: { product: true } }, payment: true },
     });
 
-    res.json({ success: true, message: 'Order status updated', order: updated });
+    res.json({
+      success: true,
+      message: 'Order status updated',
+      order: updated,
+    });
   } catch (error) {
     console.error('UpdateOrderStatus error:', error);
-    res.status(500).json({ success: false, message: 'Failed to update order status' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to update order status' });
   }
 };
 
 /**
  * Get single order by ID.
  */
-export const getOrderById = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getOrderById = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
 
     const order = await prisma.order.findUnique({
       where: { order_id: parseInt(id) },
       include: {
-        buyer: { include: { user: { select: { full_name: true, email: true, phone_number: true } } } },
-        orderItems: {
+        buyer: {
+          include: {
+            user: {
+              select: { full_name: true, email: true, phone_number: true },
+            },
+          },
+        },
+        orderitem: {
           include: {
             product: {
-              include: { factory: { select: { factory_name: true } }, category: true },
+              include: {
+                factory: { select: { factory_name: true } },
+                category: true,
+              },
             },
           },
         },

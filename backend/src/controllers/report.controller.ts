@@ -75,7 +75,7 @@ export const getFactoryReport = async (req: AuthRequest, res: Response): Promise
 
     const [totalProducts, topProducts, recentOrders, totalSales] = await Promise.all([
       prisma.product.count({ where: { factory_id: factory.factory_id } }),
-      prisma.orderItem.groupBy({
+      prisma.orderitem.groupBy({
         by: ['product_id'],
         where: { product: { factory_id: factory.factory_id } },
         _sum: { quantity: true, subtotal: true },
@@ -84,15 +84,15 @@ export const getFactoryReport = async (req: AuthRequest, res: Response): Promise
         take: 5,
       }),
       prisma.order.findMany({
-        where: { orderItems: { some: { product: { factory_id: factory.factory_id } } } },
+        where: { orderitem: { some: { product: { factory_id: factory.factory_id } } } },
         take: 5,
         orderBy: { order_date: 'desc' },
         include: {
           buyer: { include: { user: { select: { full_name: true } } } },
-          orderItems: { where: { product: { factory_id: factory.factory_id } }, include: { product: true } },
+          orderitem: { where: { product: { factory_id: factory.factory_id } }, include: { product: true } },
         },
       }),
-      prisma.orderItem.aggregate({
+      prisma.orderitem.aggregate({
         where: { product: { factory_id: factory.factory_id } },
         _sum: { subtotal: true },
       }),

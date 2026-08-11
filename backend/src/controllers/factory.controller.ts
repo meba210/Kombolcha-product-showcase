@@ -8,7 +8,7 @@ export const getAllFactories = async (_req: AuthRequest, res: Response): Promise
       where: { approval_status: 'APPROVED' },
       include: {
         user: { select: { full_name: true, email: true, phone_number: true } },
-        _count: { select: { products: true } },
+        _count: { select: { product: true } },
       },
       orderBy: { factory_name: 'asc' },
     });

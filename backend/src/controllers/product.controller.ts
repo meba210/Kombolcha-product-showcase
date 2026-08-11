@@ -109,7 +109,7 @@ export const getProductById = async (
         where: { user_id: req.user.user_id },
       });
       if (buyer) {
-        await prisma.searchHistory.create({
+        await prisma.searchhistory.create({
           data: {
             buyer_id: buyer.buyer_id,
             search_keyword: product.product_name,
@@ -154,7 +154,7 @@ export const createProduct = async (
       ? file.secure_url || file.url || file.path || `/uploads/${file.filename}`
       : null;
 
-    let factory_id: number;
+   let factory_id: number | null = null;
 
     if (req.user!.role === 'FACTORY') {
       const factory = await prisma.factory.findUnique({
@@ -173,19 +173,26 @@ export const createProduct = async (
         return;
       }
       factory_id = factory.factory_id;
-    } else {
-      // Admin can specify factory_id or use a default admin-managed factory
-      factory_id = parseInt(req.body.factory_id);
-      if (!factory_id) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            message: 'factory_id is required for admin',
-          });
-        return;
-      }
-    }
+    } else if (req.user!.role === 'ADMIN') {
+  // Factory is optional for admin
+  factory_id = req.body.factory_id
+    ? parseInt(req.body.factory_id)
+    : null;
+}
+
+    const admin =
+      req.user!.role === 'ADMIN'
+        ? await prisma.admin.findUnique({
+            where: { user_id: req.user!.user_id },
+          })
+        : null;
+
+        const factory =
+      req.user!.role === 'FACTORY'
+        ? await prisma.factory.findUnique({
+            where: { user_id: req.user!.user_id },
+          })
+        : null;
 
     const product = await prisma.product.create({
       data: {
@@ -194,8 +201,10 @@ export const createProduct = async (
         price: parseFloat(price),
         stock_quantity: parseInt(stock_quantity) || 0,
         category_id: parseInt(category_id),
-        factory_id,
+        factory_id: factory?.factory_id || undefined,
         availability_status: availability_status || 'AVAILABLE',
+        created_by_admin: req.user!.role === 'ADMIN',
+        admin_id: admin?.admin_id || undefined,
         image,
       },
       include: {
@@ -204,13 +213,11 @@ export const createProduct = async (
       },
     });
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: 'Product created successfully',
-        product,
-      });
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      product,
+    });
   } catch (error) {
     console.error('CreateProduct error:', error);
     res
@@ -239,24 +246,46 @@ export const updateProduct = async (
 
     const product = await prisma.product.findUnique({
       where: { product_id: parseInt(id) },
+      select: {
+        product_id: true,
+        factory_id: true,
+        category_id: true,
+        product_name: true,
+        description: true,
+        price: true,
+        stock_quantity: true,
+        availability_status: true,
+        image: true,
+        admin_id: true,
+      },
     });
     if (!product) {
       res.status(404).json({ success: false, message: 'Product not found' });
       return;
     }
 
-    // Factory can only update their own products
     if (req.user!.role === 'FACTORY') {
       const factory = await prisma.factory.findUnique({
         where: { user_id: req.user!.user_id },
       });
       if (!factory || factory.factory_id !== product.factory_id) {
-        res
-          .status(403)
-          .json({
-            success: false,
-            message: 'Not authorized to update this product',
-          });
+        res.status(403).json({
+          success: false,
+          message: 'Not authorized to update this product',
+        });
+        return;
+      }
+    }
+
+    if (req.user!.role === 'ADMIN') {
+      const admin = await prisma.admin.findUnique({
+        where: { user_id: req.user!.user_id },
+      });
+      if (!admin || product.admin_id !== admin.admin_id) {
+        res.status(403).json({
+          success: false,
+          message: 'Not authorized to update this product',
+        });
         return;
       }
     }
@@ -316,6 +345,18 @@ export const deleteProduct = async (
 
     const product = await prisma.product.findUnique({
       where: { product_id: parseInt(id) },
+      select: {
+        product_id: true,
+        factory_id: true,
+        category_id: true,
+        product_name: true,
+        description: true,
+        price: true,
+        stock_quantity: true,
+        availability_status: true,
+        image: true,
+        admin_id: true,
+      },
     });
     if (!product) {
       res.status(404).json({ success: false, message: 'Product not found' });
@@ -327,12 +368,23 @@ export const deleteProduct = async (
         where: { user_id: req.user!.user_id },
       });
       if (!factory || factory.factory_id !== product.factory_id) {
-        res
-          .status(403)
-          .json({
-            success: false,
-            message: 'Not authorized to delete this product',
-          });
+        res.status(403).json({
+          success: false,
+          message: 'Not authorized to delete this product',
+        });
+        return;
+      }
+    }
+
+    if (req.user!.role === 'ADMIN') {
+      const admin = await prisma.admin.findUnique({
+        where: { user_id: req.user!.user_id },
+      });
+      if (!admin || product.admin_id !== admin.admin_id) {
+        res.status(403).json({
+          success: false,
+          message: 'Not authorized to delete this product',
+        });
         return;
       }
     }

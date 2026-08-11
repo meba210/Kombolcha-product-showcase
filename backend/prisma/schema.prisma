@@ -12,6 +12,7 @@ model admin {
   user_id          Int    @unique(map: "Admin_user_id_key")
   permission_level String
   user             user   @relation(fields: [user_id], references: [user_id], onDelete: Cascade, map: "Admin_user_id_fkey")
+  product          product[]
 }
 
 model airecommendation {
@@ -133,21 +134,24 @@ model payment {
 }
 
 model product {
-  product_id          Int                @id @default(autoincrement())
-  factory_id          Int
+  product_id          Int               @id @default(autoincrement())
+  factory_id          Int?
   category_id         Int
   product_name        String
   description         String?
   price               Float
   stock_quantity      Int                @default(0)
   availability_status String             @default("AVAILABLE")
+  created_by_admin    Boolean            @default(false)
+  admin_id            Int?
   image               String?
   created_at          DateTime           @default(now())
   airecommendation    airecommendation[]
   cartitem            cartitem[]
+  admin              admin?             @relation(fields: [admin_id], references: [admin_id])
   orderitem           orderitem[]
   category            category           @relation(fields: [category_id], references: [category_id], map: "Product_category_id_fkey")
-  factory             factory            @relation(fields: [factory_id], references: [factory_id], onDelete: Cascade, map: "Product_factory_id_fkey")
+  factory             factory?            @relation(fields: [factory_id], references: [factory_id], onDelete: Cascade, map: "Product_factory_id_fkey")
 
   @@index([category_id], map: "Product_category_id_fkey")
   @@index([factory_id], map: "Product_factory_id_fkey")
