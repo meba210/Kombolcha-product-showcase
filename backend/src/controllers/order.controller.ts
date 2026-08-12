@@ -63,7 +63,7 @@ export const placeOrder = async (
       });
 
       // Deduct stock
-      for (const item of cart.cartItems) {
+      for (const item of cart.cartitem) {
         await tx.product.update({
           where: { product_id: item.product_id },
           data: { stock_quantity: { decrement: item.quantity } },

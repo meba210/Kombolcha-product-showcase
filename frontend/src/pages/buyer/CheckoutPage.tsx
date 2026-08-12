@@ -3,12 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { CreditCard, ShoppingBag } from 'lucide-react';
 import api from '../../lib/api';
-import { useCartStore } from '../../store/cartStore';
 import toast from 'react-hot-toast';
 import { PageLoader } from '../../components/LoadingSpinner';
 
 export default function CheckoutPage() {
-  const { cart, clearCart } = useCartStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -20,24 +18,17 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     setLoading(true);
     try {
-      // 1. Place order
-      const orderRes = await api.post('/orders');
-      const { order } = orderRes.data;
-
-      // 2. Initialize Chapa payment
-      const paymentRes = await api.post('/payments/initialize', {
-        order_id: order.order_id,
-      });
+      // Starting Chapa stores only a payment attempt. The order, stock update,
+      // and cart update happen after Chapa confirms a successful payment.
+      const paymentRes = await api.post('/payments/initialize');
       const { checkout_url } = paymentRes.data;
 
-      clearCart();
-      toast.success('Order placed! Redirecting to payment...');
+      toast.success('Redirecting to secure payment...');
 
-      // 3. Redirect to Chapa checkout
       window.location.href = checkout_url;
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'Failed to place order');
+      toast.error(error.response?.data?.message || 'Failed to start payment');
     } finally {
       setLoading(false);
     }

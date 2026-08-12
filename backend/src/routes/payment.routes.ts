@@ -11,6 +11,7 @@ const router = Router();
 
 router.post('/initialize', authenticate, authorize('BUYER'), initializePayment);
 router.get('/callback', chapaCallback);
+router.post('/callback', chapaCallback);
 router.get('/verify/:tx_ref', authenticate, verifyPayment);
 router.get('/', authenticate, authorize('ADMIN'), getAllPayments);
 

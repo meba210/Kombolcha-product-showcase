@@ -36,6 +36,7 @@ model buyer {
   user             user               @relation(fields: [user_id], references: [user_id], onDelete: Cascade, map: "Buyer_user_id_fkey")
   cart             cart[]
   order            order[]
+  paymentattempt   paymentattempt[]
   searchhistory    searchhistory[]
 }
 
@@ -131,6 +132,21 @@ model payment {
   settlement_status     String   @default("UNSETTLED")
   payment_method        String
   order                 order    @relation(fields: [order_id], references: [order_id], onDelete: Cascade, map: "Payment_order_id_fkey")
+}
+
+// A checkout is kept separate from an order so a cancelled/failed payment never
+// appears as an order or changes inventory.
+model paymentattempt {
+  payment_attempt_id   Int      @id @default(autoincrement())
+  buyer_id             Int
+  amount               Float
+  transaction_reference String  @unique(map: "PaymentAttempt_transaction_reference_key")
+  cart_snapshot        Json
+  payment_status       String   @default("PENDING")
+  created_at           DateTime @default(now())
+  buyer                buyer    @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade, map: "PaymentAttempt_buyer_id_fkey")
+
+  @@index([buyer_id], map: "PaymentAttempt_buyer_id_fkey")
 }
 
 model product {

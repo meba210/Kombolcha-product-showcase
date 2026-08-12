@@ -20,6 +20,7 @@ import CartPage from './pages/buyer/CartPage';
 import CheckoutPage from './pages/buyer/CheckoutPage';
 import OrdersPage from './pages/buyer/OrdersPage';
 import OrderDetailPage from './pages/buyer/OrderDetailPage';
+import PaymentResultPage from './pages/buyer/PaymentResultPage';
 import RecommendationsPage from './pages/buyer/RecommendationsPage';
 
 // Shared Pages
@@ -107,6 +108,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={['BUYER']}>
               <OrderDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payment/result"
+          element={
+            <ProtectedRoute roles={['BUYER']}>
+              <PaymentResultPage />
             </ProtectedRoute>
           }
         />
