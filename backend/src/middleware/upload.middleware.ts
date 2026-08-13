@@ -4,11 +4,11 @@ import cloudinary from '../config/cloudinary';
 
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: {
+  params:async () =>({
     folder: 'kombolcha-factory',
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
     resource_type: 'image',
-  },
+  }),
 });
 
 const fileFilter = (

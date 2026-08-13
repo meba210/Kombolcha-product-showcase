@@ -40,7 +40,7 @@ export default function OrdersPage() {
               order_date: string;
               order_status: string;
               total_amount: number;
-              orderItems: { product: { product_name: string } }[];
+              orderitem: { product: { product_name: string } }[];
               payment: { payment_status: string } | null;
             }) => (
               <Link
@@ -59,7 +59,7 @@ export default function OrdersPage() {
                     <StatusBadge status={order.order_status} />
                   </div>
                   <p className="text-sm text-slate-500 truncate">
-                    {order.orderItems
+                    {order.orderitem
                       .map((i: any) => i.product.product_name)
                       .join(', ')}
                   </p>
