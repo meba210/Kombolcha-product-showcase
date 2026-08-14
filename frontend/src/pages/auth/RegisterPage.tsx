@@ -50,7 +50,7 @@ export default function RegisterPage() {
       setAuth(user, token);
       toast.success('Registration successful!');
 
-      if (role === 'FACTORY') navigate('/factory');
+      if (role === 'FACTORY') navigate('/factory/pending');
       else navigate('/buyer');
     } catch (error: any) {
       const message = error?.response?.data?.message || 'Registration failed';

@@ -23,7 +23,8 @@ export default function LoginPage() {
       toast.success(`Welcome back, ${user.full_name.split(' ')[0]}!`);
 
       if (user.role === 'ADMIN') navigate('/admin');
-      else if (user.role === 'FACTORY') navigate('/factory');
+      else if (user.role === 'FACTORY')
+        navigate(user.approval_status === 'APPROVED' ? '/factory' : '/factory/pending');
       else navigate('/buyer');
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Login failed';

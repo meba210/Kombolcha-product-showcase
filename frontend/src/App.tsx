@@ -32,6 +32,7 @@ import FactoryDashboard from './pages/factory/FactoryDashboard';
 import FactoryProducts from './pages/factory/FactoryProducts';
 import FactoryOrders from './pages/factory/FactoryOrders';
 import FactoryReports from './pages/factory/FactoryReports';
+import FactoryApprovalPage from './pages/factory/FactoryApprovalPage';
 
 // Admin Dashboard
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -54,6 +55,15 @@ const ProtectedRoute = ({
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (roles && user && !roles.includes(user.role))
     return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
+const ApprovedFactoryRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, user } = useAuthStore();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'FACTORY') return <Navigate to="/" replace />;
+  if (user.approval_status !== 'APPROVED')
+    return <Navigate to="/factory/pending" replace />;
   return <>{children}</>;
 };
 
@@ -127,6 +137,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/factory/pending"
+          element={
+            <ProtectedRoute roles={['FACTORY']}>
+              <FactoryApprovalPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Shared */}
         <Route
@@ -151,9 +169,9 @@ export default function App() {
       <Route
         path="/factory"
         element={
-          <ProtectedRoute roles={['FACTORY']}>
+          <ApprovedFactoryRoute>
             <DashboardLayout role="FACTORY" />
-          </ProtectedRoute>
+          </ApprovedFactoryRoute>
         }
       >
         <Route index element={<FactoryDashboard />} />

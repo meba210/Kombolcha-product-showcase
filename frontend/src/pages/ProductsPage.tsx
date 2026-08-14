@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useDebounce } from '../hooks/useDebounce';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import api from '../lib/api';
 import ProductCard, { Product } from '../components/ProductCard';
@@ -9,30 +10,44 @@ import { PageLoader } from '../components/LoadingSpinner';
 export default function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('search') || '');
+  const debouncedSearch = useDebounce(search, 500);
   const [categoryId, setCategoryId] = useState(searchParams.get('category_id') || '');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
 
+useEffect(() => {
+  setPage(1);
+}, [debouncedSearch]);
+
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
     queryFn: () => api.get('/categories').then((r) => r.data),
   });
 
-  const queryParams = new URLSearchParams({
-    ...(search && { search }),
+  const queryParams = {
+    ...(debouncedSearch && { search: debouncedSearch }),
     ...(categoryId && { category_id: categoryId }),
     ...(minPrice && { min_price: minPrice }),
     ...(maxPrice && { max_price: maxPrice }),
     page: String(page),
     limit: '12',
-  });
+  };
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['products', search, categoryId, minPrice, maxPrice, page],
-    queryFn: () => api.get(`/products?${queryParams}`).then((r) => r.data),
-  });
+  // const { data, isLoading } = useQuery({
+  //   queryKey: ['products', search, categoryId, minPrice, maxPrice, page],
+  //   queryFn: () => api.get(`/products?${queryParams}`).then((r) => r.data),
+  // });
+const { data, isLoading } = useQuery({
+  queryKey: ['products', debouncedSearch, categoryId, minPrice, maxPrice, page],
+  queryFn: () =>
+    api
+      .get('/products', {
+        params: queryParams,
+      })
+      .then((res) => res.data),
+});
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

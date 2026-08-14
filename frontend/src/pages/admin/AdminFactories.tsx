@@ -10,7 +10,7 @@ export default function AdminFactories() {
 
   const { data: allData, isLoading: allLoading } = useQuery({
     queryKey: ['all-factories'],
-    queryFn: () => api.get('/factories').then((r) => r.data),
+    queryFn: () => api.get('/factories/manage').then((r) => r.data),
   });
 
   const { data: pendingData } = useQuery({
@@ -83,6 +83,7 @@ export default function AdminFactories() {
               <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Location</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Products</th>
               <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
+              <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -102,6 +103,28 @@ export default function AdminFactories() {
                 <td className="px-6 py-4 text-sm text-slate-600">{factory.location}</td>
                 <td className="px-6 py-4 text-sm text-slate-600">{factory._count.products}</td>
                 <td className="px-6 py-4"><StatusBadge status={factory.approval_status} /></td>
+                <td className="px-6 py-4 text-right">
+                  <div className="flex justify-end gap-2">
+                    {factory.approval_status !== 'APPROVED' && (
+                      <button
+                        onClick={() => approveMutation.mutate({ id: factory.factory_id, status: 'APPROVED' })}
+                        disabled={approveMutation.isPending}
+                        className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                      >
+                        <CheckCircle size={13} /> Approve
+                      </button>
+                    )}
+                    {factory.approval_status !== 'REJECTED' && (
+                      <button
+                        onClick={() => approveMutation.mutate({ id: factory.factory_id, status: 'REJECTED' })}
+                        disabled={approveMutation.isPending}
+                        className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                      >
+                        <XCircle size={13} /> Reject
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

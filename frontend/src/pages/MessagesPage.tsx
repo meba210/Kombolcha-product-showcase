@@ -30,10 +30,16 @@ interface Conversation {
 export default function MessagesPage() {
   const { user } = useAuthStore();
   const [searchParams] = useSearchParams();
+  const [inquiryProduct, setInquiryProduct] = useState<{
+  product_id: number;
+  product_name: string;
+  product_image: string;
+} | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(
     searchParams.get('to') ? parseInt(searchParams.get('to')!) : null
   );
   const [newMessage, setNewMessage] = useState('');
+  const [sendAsProductInquiry, setSendAsProductInquiry] = useState(false);
   const productId = searchParams.get('product_id');
   const productName = searchParams.get('product_name')
     ? decodeURIComponent(searchParams.get('product_name')!)
@@ -60,34 +66,120 @@ export default function MessagesPage() {
     refetchInterval: 5000,
   });
 
+  // const sendMutation = useMutation({
+  //   mutationFn: (payload: { content: string; attachment_url?: string }) =>
+  //     api.post('/messages', {
+  //       receiver_id: Number(selectedUserId),
+  //       message_content: payload.content,
+  //       attachment_url: payload.attachment_url,
+  //       product_id: productId,
+  //       product_name: productName,
+  //       product_image: productImage,
+  //     }),
+  //   onMutate: async (payload: { content: string; attachment_url?: string }) => {
+  //     await queryClient.cancelQueries({
+  //       queryKey: ['conversation', selectedUserId],
+  //     });
+  //     const previousData = queryClient.getQueryData<any>([
+  //       'conversation',
+  //       selectedUserId,
+  //     ]);
+  //     const tempMessage = {
+  //       message_id: Date.now() * -1,
+  //       sender_id: user?.user_id,
+  //       receiver_id: selectedUserId,
+  //       message_content: payload.content,
+  //       attachment_url: payload.attachment_url,
+  //       send_date: new Date().toISOString(),
+  //       message_status: 'SENT',
+  //       sender: { full_name: user?.full_name ?? '', role: user?.role ?? '' },
+  //     };
+  //     queryClient.setQueryData(
+  //       ['conversation', selectedUserId],
+  //       (old: any) => ({
+  //         ...old,
+  //         messages: [...(old?.messages || []), tempMessage],
+  //       })
+  //     );
+  //     return { previousData };
+  //   },
+  //   onError: (_err, _content, context: any) => {
+  //     queryClient.setQueryData(
+  //       ['conversation', selectedUserId],
+  //       context?.previousData
+  //     );
+  //     toast.error('Failed to send message');
+  //   },
+  //   onSettled: () => {
+  //     setNewMessage('');
+  //     queryClient.invalidateQueries({
+  //       queryKey: ['conversation', selectedUserId],
+  //     });
+  //     queryClient.invalidateQueries({ queryKey: ['inbox'] });
+  //   },
+  // });
+
+useEffect(() => {
+  const productId = searchParams.get('product_id');
+  const productName = searchParams.get('product_name');
+  const productImage = searchParams.get('product_image');
+
+  if (productId && productName) {
+    setInquiryProduct({
+      product_id: Number(productId),
+      product_name: productName,
+      product_image: productImage || '',
+    });
+  }
+}, [searchParams]);
+
   const sendMutation = useMutation({
-    mutationFn: (payload: { content: string; attachment_url?: string }) =>
+    mutationFn: (payload: {
+      content: string;
+      attachment_url?: string;
+      product_id?: number;
+      product_name?: string;
+      product_image?: string;
+    }) =>
       api.post('/messages', {
         receiver_id: Number(selectedUserId),
         message_content: payload.content,
         attachment_url: payload.attachment_url,
-        product_id: productId,
-        product_name: productName,
-        product_image: productImage,
+        product_id: payload.product_id,
+        product_name: payload.product_name,
+        product_image: payload.product_image,
       }),
-    onMutate: async (payload: { content: string; attachment_url?: string }) => {
+
+    onMutate: async (payload) => {
       await queryClient.cancelQueries({
         queryKey: ['conversation', selectedUserId],
       });
+
       const previousData = queryClient.getQueryData<any>([
         'conversation',
         selectedUserId,
       ]);
+
       const tempMessage = {
         message_id: Date.now() * -1,
         sender_id: user?.user_id,
         receiver_id: selectedUserId,
         message_content: payload.content,
         attachment_url: payload.attachment_url,
+
+        // Add these for the optimistic UI
+        product_id: payload.product_id,
+        product_name: payload.product_name,
+        product_image: payload.product_image,
+
         send_date: new Date().toISOString(),
         message_status: 'SENT',
-        sender: { full_name: user?.full_name ?? '', role: user?.role ?? '' },
+        sender: {
+          full_name: user?.full_name ?? '',
+          role: user?.role ?? '',
+        },
       };
+
       queryClient.setQueryData(
         ['conversation', selectedUserId],
         (old: any) => ({
@@ -95,21 +187,29 @@ export default function MessagesPage() {
           messages: [...(old?.messages || []), tempMessage],
         })
       );
+
       return { previousData };
     },
-    onError: (_err, _content, context: any) => {
+
+    onError: (_err, _payload, context: any) => {
       queryClient.setQueryData(
         ['conversation', selectedUserId],
         context?.previousData
       );
+
       toast.error('Failed to send message');
     },
+
     onSettled: () => {
       setNewMessage('');
+
       queryClient.invalidateQueries({
         queryKey: ['conversation', selectedUserId],
       });
-      queryClient.invalidateQueries({ queryKey: ['inbox'] });
+
+      queryClient.invalidateQueries({
+        queryKey: ['inbox'],
+      });
     },
   });
 
@@ -117,11 +217,31 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversationData, selectedUserId]);
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedUserId) return;
-    sendMutation.mutate({ content: newMessage.trim() });
-  };
+  // const handleSend = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!newMessage.trim() || !selectedUserId) return;
+  //   sendMutation.mutate({ content: newMessage.trim() });
+  // };
+
+ const handleSend = (e: React.FormEvent) => {
+   e.preventDefault();
+
+   if (!newMessage.trim() || !selectedUserId) return;
+
+   sendMutation.mutate({
+     content: newMessage.trim(),
+
+     ...(inquiryProduct && {
+       product_id: inquiryProduct.product_id,
+       product_name: inquiryProduct.product_name,
+       product_image: inquiryProduct.product_image,
+     }),
+   });
+
+   // IMPORTANT:
+   // After sending the inquiry, make the next message normal.
+   setInquiryProduct(null);
+ };
 
   const handleAttachClick = () => {
     fileInputRef.current?.click();
@@ -290,6 +410,14 @@ export default function MessagesPage() {
                               : 'bg-slate-100 text-slate-800 rounded-bl-sm'
                           }`}
                         >
+                         
+                          {msg.product_image && (
+                            <img
+                              src={msg.product_image}
+                              alt={msg.product_name || 'Product'}
+                              className="w-48 h-32 object-cover rounded-lg mb-2"
+                            />
+                          )}
                           {msg.product_name && (
                             <div className="mb-2 rounded-lg bg-slate-200 px-3 py-2 text-xs text-slate-700">
                               Inquiry about:{' '}
@@ -298,14 +426,18 @@ export default function MessagesPage() {
                               </span>
                             </div>
                           )}
-                          <p>{msg.message_content}</p>
+
+                          {msg.message_content && <p>{msg.message_content}</p>}
                           {msg.attachment_url && (
-                            <img
-                              src={msg.attachment_url}
-                              alt="Message attachment"
-                              className="mt-2 w-full rounded-xl object-cover"
-                            />
+                            <div className="mt-2">
+                              <img
+                                src={msg.attachment_url}
+                                alt="Message attachment"
+                                className="max-w-full max-h-64 rounded-xl object-cover"
+                              />
+                            </div>
                           )}
+
                           <p
                             className={`text-xs mt-1 ${isOwn ? 'text-primary-200' : 'text-slate-400'}`}
                           >

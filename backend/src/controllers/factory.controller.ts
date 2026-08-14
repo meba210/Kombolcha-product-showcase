@@ -47,6 +47,19 @@ export const approveFactory = async (req: AuthRequest, res: Response): Promise<v
     const { id } = req.params;
     const { approval_status } = req.body;
 
+    if (!['APPROVED', 'REJECTED'].includes(approval_status)) {
+      res.status(400).json({ success: false, message: 'Status must be APPROVED or REJECTED' });
+      return;
+    }
+
+    const existingFactory = await prisma.factory.findUnique({
+      where: { factory_id: parseInt(id) },
+    });
+    if (!existingFactory) {
+      res.status(404).json({ success: false, message: 'Factory not found' });
+      return;
+    }
+
     const factory = await prisma.factory.update({
       where: { factory_id: parseInt(id) },
       data: { approval_status },
@@ -54,6 +67,23 @@ export const approveFactory = async (req: AuthRequest, res: Response): Promise<v
     res.json({ success: true, message: `Factory ${approval_status.toLowerCase()}`, factory });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to update factory status' });
+  }
+};
+
+/** All registrations, including pending and rejected factories (Admin only). */
+export const getAdminFactories = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const factories = await prisma.factory.findMany({
+      include: {
+        user: { select: { full_name: true, email: true, phone_number: true } },
+        _count: { select: { product: true } },
+      },
+      orderBy: { factory_name: 'asc' },
+    });
+    res.json({ success: true, factories });
+  } catch (error) {
+    console.error('GetAdminFactories error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch factories' });
   }
 };
 
