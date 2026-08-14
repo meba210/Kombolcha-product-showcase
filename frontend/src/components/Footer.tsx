@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Factory, Mail, Phone, MapPin } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-slate-900 text-slate-300 mt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -13,25 +16,24 @@ export default function Footer() {
                 <Factory size={20} className="text-white" />
               </div>
               <div>
-                <span className="font-bold text-white text-lg block leading-tight">Kombolcha Showcase</span>
-                <span className="text-xs text-slate-400">AI-Powered Factory Products</span>
+                <span className="font-bold text-white text-lg block leading-tight">{t('platformName')}</span>
+                <span className="text-xs text-slate-400">{t('footer_tagline')}</span>
               </div>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
-              Connecting Kombolcha's industrial factories with buyers through an intelligent digital marketplace.
-              Discover textiles, steel, food products, and construction materials.
+              {t('footer_desc')}
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-white font-semibold mb-4 text-sm">Quick Links</h3>
+            <h3 className="text-white font-semibold mb-4 text-sm">{t('footer_quick_links')}</h3>
             <ul className="space-y-2">
               {[
-                { to: '/products', label: 'Browse Products' },
-                { to: '/factories', label: 'Our Factories' },
-                { to: '/register', label: 'Register' },
-                { to: '/login', label: 'Login' },
+                { to: '/products', label: t('footer_browse_products') },
+                { to: '/factories', label: t('footer_our_factories') },
+                { to: '/register', label: t('register') },
+                { to: '/login', label: t('login') },
               ].map((link) => (
                 <li key={link.to}>
                   <Link to={link.to} className="text-sm text-slate-400 hover:text-white transition-colors">
@@ -44,7 +46,7 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h3 className="text-white font-semibold mb-4 text-sm">Contact</h3>
+            <h3 className="text-white font-semibold mb-4 text-sm">{t('footer_contact')}</h3>
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-sm text-slate-400">
                 <MapPin size={14} className="text-primary-400 flex-shrink-0" />
@@ -64,11 +66,9 @@ export default function Footer() {
 
         <div className="border-t border-slate-800 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} Kombolcha Showcase Platform.
+            © {new Date().getFullYear()} {t('platformName')}.
           </p>
-          <p className="text-xs text-slate-500">
-            Built with React, Node.js & AI
-          </p>
+          <p className="text-xs text-slate-500">{t('footer_built_with')}</p>
         </div>
       </div>
     </footer>

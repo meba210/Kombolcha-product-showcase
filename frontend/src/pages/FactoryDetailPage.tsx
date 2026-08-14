@@ -1,12 +1,14 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, Mail, Phone, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import ProductCard, { Product } from '../components/ProductCard';
 import { PageLoader } from '../components/LoadingSpinner';
 
 export default function FactoryDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { t } = useTranslation();
 
   const { data, isLoading } = useQuery({
     queryKey: ['factory', id],
@@ -14,14 +16,18 @@ export default function FactoryDetailPage() {
   });
 
   if (isLoading) return <PageLoader />;
-  if (!data?.factory) return <div className="text-center py-16 text-slate-500">Factory not found</div>;
+  if (!data?.factory)
+    return <div className="text-center py-16 text-slate-500">{t('factory_not_found')}</div>;
 
   const { factory } = data;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Link to="/factories" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 mb-6">
-        <ArrowLeft size={14} /> Back to Factories
+      <Link
+        to="/factories"
+        className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 mb-6"
+      >
+        <ArrowLeft size={14} /> {t('factory_back')}
       </Link>
 
       {/* Factory Header */}
@@ -55,9 +61,12 @@ export default function FactoryDetailPage() {
       </div>
 
       {/* Products */}
-      <h2 className="text-xl font-bold text-slate-900 mb-6">Products from {factory.factory_name}</h2>
+      <h2 className="text-xl font-bold text-slate-900 mb-6">
+        {t('factory_products_from', { name: factory.factory_name })}
+      </h2>
+
       {factory.products?.length === 0 ? (
-        <div className="text-center py-12 text-slate-500">No products available</div>
+        <div className="text-center py-12 text-slate-500">{t('factory_no_products')}</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {factory.products?.map((product: Product) => (

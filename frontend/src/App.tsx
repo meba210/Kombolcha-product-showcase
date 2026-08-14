@@ -50,7 +50,12 @@ const ProtectedRoute = ({
   children: React.ReactNode;
   roles?: string[];
 }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, _hasHydrated } = useAuthStore();
+
+  // Wait until Zustand has reloaded state from localStorage before
+  // making any redirect decision — prevents false /login redirect on refresh
+  if (!_hasHydrated) return null;
+
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (roles && user && !roles.includes(user.role))
     return <Navigate to="/" replace />;

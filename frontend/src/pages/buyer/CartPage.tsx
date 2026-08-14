@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 import api from '../../lib/api';
 import { useCartStore } from '../../store/cartStore';
@@ -8,10 +8,13 @@ import toast from 'react-hot-toast';
 import { PageLoader } from '../../components/LoadingSpinner';
 
 export default function CartPage() {
-  const { cart, setCart } = useCartStore();
+  const { setCart } = useCartStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  // track which item is currently being updated to disable its buttons
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['cart'],
     queryFn: () => api.get('/cart').then((r) => r.data),
   });
@@ -21,28 +24,38 @@ export default function CartPage() {
   }, [data, setCart]);
 
   const updateQuantity = async (itemId: number, quantity: number) => {
+    setUpdatingId(itemId);
     try {
       const res = await api.put(`/cart/item/${itemId}`, { quantity });
+      // update both the query cache and the zustand store
+      queryClient.setQueryData(['cart'], { cart: res.data.cart });
       setCart(res.data.cart);
     } catch {
       toast.error('Failed to update quantity');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
   const removeItem = async (itemId: number) => {
+    setUpdatingId(itemId);
     try {
       const res = await api.delete(`/cart/item/${itemId}`);
+      queryClient.setQueryData(['cart'], { cart: res.data.cart });
       setCart(res.data.cart);
       toast.success('Item removed');
     } catch {
       toast.error('Failed to remove item');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
   if (isLoading) return <PageLoader />;
 
+  // always read from query cache so UI is always in sync
   const cartData = data?.cart;
-  const cartItems = cartData
+  const cartItems: any[] = cartData
     ? (cartData.cartItems ?? cartData.cartitem ?? [])
     : [];
   const isEmpty = cartItems.length === 0;
@@ -123,7 +136,8 @@ export default function CartPage() {
                   <button
                     type="button"
                     onClick={() => removeItem(item.cart_item_id)}
-                    className="text-slate-400 hover:text-red-500 transition-colors"
+                    disabled={updatingId === item.cart_item_id}
+                    className="text-slate-400 hover:text-red-500 transition-colors disabled:opacity-40"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -133,19 +147,21 @@ export default function CartPage() {
                       onClick={() =>
                         updateQuantity(item.cart_item_id, item.quantity - 1)
                       }
-                      className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50"
+                      disabled={updatingId === item.cart_item_id}
+                      className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Minus size={12} />
                     </button>
                     <span className="w-8 text-center text-sm font-medium">
-                      {item.quantity}
+                      {updatingId === item.cart_item_id ? '…' : item.quantity}
                     </span>
                     <button
                       type="button"
                       onClick={() =>
                         updateQuantity(item.cart_item_id, item.quantity + 1)
                       }
-                      className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50"
+                      disabled={updatingId === item.cart_item_id}
+                      className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Plus size={12} />
                     </button>
