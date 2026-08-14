@@ -243,7 +243,7 @@ const resources = {
       profile: 'መገለጫ',
 
       // ── Home page — Hero ────────────────────────────────────────
-      hero_eyebrow: 'የቆምቦልቻ ኢንዱስትሪ መድረክ',
+      hero_eyebrow: 'የኮምቦልቻ ኢንዱስትሪ መድረክ',
       hero_headline_line1: 'የኢትዮጵያ የኢንዱስትሪ',
       hero_headline_line2: 'ገበያ',
       hero_sub: 'በጨርቃጨርቅ፣ ብረታ ብረት፣ ምግብ ማቀነባበር እና ግንባታ ዘርፎች ውስጥ ወደ ተረጋገጡ ፋብሪካዎች ቀጥተኛ መዳረሻ። በ AI ምክሮች የሚሰራ እና ለከባድ ግዥ የተሰራ።',
@@ -279,14 +279,14 @@ const resources = {
       how_eyebrow: 'እንዴት ይሰራል',
       how_heading: 'ከፍለጋ እስከ ማስረከብ በሶስት ደረጃዎች',
       step1_title: 'ፈልግ',
-      step1_desc: 'በቆምቦልቻ ውስጥ በተረጋገጡ ፋብሪካዎች እና ሙሉ ምርት ካታሎጋቸው ውስጥ ፈልጉ እና አጣሩ።',
+      step1_desc: 'በኮምቦልቻ ውስጥ በተረጋገጡ ፋብሪካዎች እና ሙሉ ምርት ካታሎጋቸው ውስጥ ፈልጉ እና አጣሩ።',
       step2_title: 'ተገናኝ',
       step2_desc: 'ከአቅራቢዎች ጋር ቀጥታ ይጻፉ እና ለፍላጎቶችዎ የተስማሙ AI-ሃይል ያላቸው ምክሮችን ይቀበሉ።',
       step3_title: 'ትዕዛዝ ስጥ',
       step3_desc: 'ትዕዛዞችን ያስቀምጡ፣ የማድረሻ ሁኔታን ይከታተሉ እና ግዥዎን ከአንድ ዳሽቦርድ ያስተዳድሩ።',
 
       // ── Home page — Trust ───────────────────────────────────────
-      trust_eyebrow: 'ለምን ቆምቦልቻ ሾውኬዝ',
+      trust_eyebrow: 'ለምን ኮምቦልቻ ሾውኬዝ',
       trust_heading: 'ለኢንዱስትሪ ግዥ የተሰራ፣',
       trust_heading2: 'ለተራ ግዢ አይደለም',
       trust_item1: 'ሁሉም አቅራቢዎች ተረጋግጠው የምዝገባ ሰርተፍኬት አላቸው',
@@ -298,7 +298,7 @@ const resources = {
       trust_badge_label: 'ንቁ ገዥዎች',
 
       // ── Home page — CTA band ────────────────────────────────────
-      cta_heading: 'ከቆምቦልቻ ለማቅረብ ዝግጁ ነዎት?',
+      cta_heading: 'ከኮምቦልቻ ለማቅረብ ዝግጁ ነዎት?',
       cta_sub: 'ከኢትዮጵያ በጣም ታማኝ ኢንዱስትሪ አቅራቢዎች ጋር ቀድሞ የሚሰሩ በሺዎች የሚቆጠሩ ገዥዎችን ይቀላቀሉ።',
       cta_start: 'በነጻ ጀምር',
       cta_browse: 'ያለ ግባ ያስሱ',
@@ -322,7 +322,7 @@ const resources = {
 
       // ── Auth — Register ─────────────────────────────────────────
       register_title: 'አካውንት ፍጠር',
-      register_subtitle: 'በቆምቦልቻ ሾውኬዝ ውስጥ እንደ ገዥ ወይም ፋብሪካ ይቀላቀሉ።',
+      register_subtitle: 'በኮምቦልቻ ሾውኬዝ ውስጥ እንደ ገዥ ወይም ፋብሪካ ይቀላቀሉ።',
       register_role_buyer: '🛒 ገዥ',
       register_role_factory: '🏭 ፋብሪካ',
       register_fullname_label: 'ሙሉ ስም',
@@ -337,7 +337,7 @@ const resources = {
       register_factory_name_label: 'የፋብሪካ ስም',
       register_factory_name_placeholder: 'የፋብሪካዬ ስም',
       register_location_label: 'አካባቢ',
-      register_location_placeholder: 'ቆምቦልቻ ኢንዱስትሪ ዞን',
+      register_location_placeholder: 'ኮምቦልቻ ኢንዱስትሪ ዞን',
       register_factory_warning: '⚠️ የፋብሪካ አካውንቶች ምርቶችን ከዘረዘሩ በፊት የአስተዳዳሪ ፈቃድ ያስፈልጋቸዋል።',
       register_submit: 'አካውንት ፍጠር',
       register_submitting: 'አካውንት በመፍጠር ላይ...',
@@ -387,7 +387,7 @@ const resources = {
 
       // ── Footer ───────────────────────────────────────────────────
       footer_tagline: 'AI-ሃይል ያለው የፋብሪካ ምርቶች',
-      footer_desc: 'የቆምቦልቻን ኢንዱስትሪ ፋብሪካዎች ከገዥዎች ጋር በዲጂታል ገበያ ያገናኛል። ጨርቃጨርቅ፣ ብረት፣ የምግብ ምርቶች እና የግንባታ ቁሶችን ያስሱ።',
+      footer_desc: 'የኮምቦልቻን ኢንዱስትሪ ፋብሪካዎች ከገዥዎች ጋር በዲጂታል ገበያ ያገናኛል። ጨርቃጨርቅ፣ ብረት፣ የምግብ ምርቶች እና የግንባታ ቁሶችን ያስሱ።',
       footer_quick_links: 'ፈጣን አገናኞች',
       footer_browse_products: 'ምርቶችን ያስሱ',
       footer_our_factories: 'ፋብሪካዎቻችን',
@@ -436,7 +436,7 @@ const resources = {
 
       // ── Factories Page ───────────────────────────────────────────
       factories_title: 'ፋብሪካዎቻችን',
-      factories_subtitle: 'የቆምቦልቻ የኢንዱስትሪ አጋሮችን ያስሱ',
+      factories_subtitle: 'የኮምቦልቻ የኢንዱስትሪ አጋሮችን ያስሱ',
       factories_products_count: '{{count}} ምርቶች',
       factories_view_products: 'ምርቶችን ይመልከቱ',
 
@@ -447,7 +447,7 @@ const resources = {
       factory_no_products: 'ምንም ምርቶች አልተገኙም',
 
       // ── Platform ─────────────────────────────────────────────────
-      platformName: 'ቆምቦልቻ ሾውኬዝ',
+      platformName: 'ኮምቦልቻ ሾውኬዝ',
       tagline: 'AI-ሃይል ያለው የፋብሪካ ምርቶች መድረክ',
     },
   },
