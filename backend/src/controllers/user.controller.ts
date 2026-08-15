@@ -21,6 +21,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void
           email: true,
           phone_number: true,
           role: true,
+          account_status: true,
           created_at: true,
         },
         orderBy: { created_at: 'desc' },
@@ -35,6 +36,37 @@ export const getAllUsers = async (req: AuthRequest, res: Response): Promise<void
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch users' });
+  }
+};
+
+export const updateUserStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { account_status } = req.body;
+    const userId = parseInt(id);
+
+    if (!['ACTIVE', 'DISABLED'].includes(account_status)) {
+      res.status(400).json({ success: false, message: 'Status must be ACTIVE or DISABLED' });
+      return;
+    }
+    if (userId === req.user!.user_id) {
+      res.status(400).json({ success: false, message: 'You cannot disable your own admin account' });
+      return;
+    }
+
+    const user = await prisma.user.update({
+      where: { user_id: userId },
+      data: { account_status },
+      select: { user_id: true, full_name: true, account_status: true },
+    });
+    res.json({ success: true, message: `User ${account_status === 'ACTIVE' ? 'enabled' : 'disabled'}`, user });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      res.status(404).json({ success: false, message: 'User not found' });
+      return;
+    }
+    console.error('UpdateUserStatus error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update user status' });
   }
 };
 

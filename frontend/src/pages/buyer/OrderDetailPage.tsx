@@ -50,7 +50,7 @@ export default function OrderDetailPage() {
               product: {
                 product_name: string;
                 image: string | null;
-                factory: { factory_name: string };
+                factory: { factory_name: string } | null;
               };
             }) => (
               <div key={item.order_item_id} className="flex items-center gap-4">
@@ -67,18 +67,22 @@ export default function OrderDetailPage() {
                     </div>
                   )}
                 </div>
+
                 <div className="flex-1">
                   <p className="font-medium text-slate-800">
                     {item.product.product_name}
                   </p>
+
                   <p className="text-sm text-slate-500">
-                    {item.product.factory.factory_name}
+                    {item.product.factory?.factory_name || 'Platform Product'}
                   </p>
+
                   <p className="text-sm text-slate-500">
                     Qty: {item.quantity} × ETB{' '}
                     {Number(item.price).toLocaleString()}
                   </p>
                 </div>
+
                 <p className="font-semibold text-slate-900">
                   ETB {Number(item.subtotal).toLocaleString()}
                 </p>

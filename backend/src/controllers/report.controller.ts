@@ -17,6 +17,8 @@ export const getAdminReport = async (_req: AuthRequest, res: Response): Promise<
       pendingFactories,
       recentOrders,
       ordersByStatus,
+      settlementSummary,
+      totalPlatformCommission,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.buyer.count(),
@@ -34,11 +36,23 @@ export const getAdminReport = async (_req: AuthRequest, res: Response): Promise<
         include: {
           buyer: { include: { user: { select: { full_name: true } } } },
           payment: true,
+          settlement: {
+            include: { factory: { select: { factory_name: true } } },
+          },
         },
       }),
       prisma.order.groupBy({
         by: ['order_status'],
         _count: { order_id: true },
+      }),
+      // Total gross/commission/net across all factory settlements
+      prisma.settlement.aggregate({
+        _sum: { gross_amount: true, commission_amount: true, net_amount: true },
+        where: { factory_id: { not: null } },
+      }),
+      // Platform commission = sum of all commission_amount
+      prisma.settlement.aggregate({
+        _sum: { commission_amount: true },
       }),
     ]);
 
@@ -54,6 +68,12 @@ export const getAdminReport = async (_req: AuthRequest, res: Response): Promise<
         pendingFactories,
         recentOrders,
         ordersByStatus,
+        settlementSummary: {
+          totalFactoryGross: Number(settlementSummary._sum.gross_amount) || 0,
+          totalFactoryCommission: Number(settlementSummary._sum.commission_amount) || 0,
+          totalFactoryNet: Number(settlementSummary._sum.net_amount) || 0,
+          totalPlatformCommission: Number(totalPlatformCommission._sum.commission_amount) || 0,
+        },
       },
     });
   } catch (error) {

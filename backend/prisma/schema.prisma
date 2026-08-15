@@ -72,13 +72,14 @@ model category {
 }
 
 model factory {
-  factory_id      Int       @id @default(autoincrement())
-  user_id         Int       @unique(map: "Factory_user_id_key")
+  factory_id      Int          @id @default(autoincrement())
+  user_id         Int          @unique(map: "Factory_user_id_key")
   factory_name    String
   location        String
-  approval_status String    @default("PENDING")
-  user            user      @relation(fields: [user_id], references: [user_id], onDelete: Cascade, map: "Factory_user_id_fkey")
+  approval_status String       @default("PENDING")
+  user            user         @relation(fields: [user_id], references: [user_id], onDelete: Cascade, map: "Factory_user_id_fkey")
   product         product[]
+  settlement      settlement[]
 }
 
 model message {
@@ -101,14 +102,15 @@ model message {
 }
 
 model order {
-  order_id     Int         @id @default(autoincrement())
+  order_id     Int          @id @default(autoincrement())
   buyer_id     Int
-  order_date   DateTime    @default(now())
-  order_status String      @default("PENDING")
+  order_date   DateTime     @default(now())
+  order_status String       @default("PENDING")
   total_amount Float
-  buyer        buyer       @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade, map: "Order_buyer_id_fkey")
+  buyer        buyer        @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade, map: "Order_buyer_id_fkey")
   orderitem    orderitem[]
   payment      payment?
+  settlement   settlement[]
 
   @@index([buyer_id], map: "Order_buyer_id_fkey")
 }
@@ -198,10 +200,35 @@ model user {
   password                          String
   phone_number                      String?
   role                              String    @default("BUYER")
+  account_status                    String    @default("ACTIVE")
   created_at                        DateTime  @default(now())
   admin                             admin?
   buyer                             buyer?
   factory                           factory?
   message_message_receiver_idTouser message[] @relation("message_receiver_idTouser")
   message_message_sender_idTouser   message[] @relation("message_sender_idTouser")
+}
+
+// Per-seller settlement record created when a payment is completed.
+// One row per seller (factory or admin platform) per order.
+model settlement {
+  settlement_id      Int      @id @default(autoincrement())
+  order_id           Int
+  /// NULL means this row belongs to the admin/platform (products created by admin)
+  factory_id         Int?
+  /// Sum of orderitem.subtotal for this seller in this order
+  gross_amount       Float
+  commission_rate    Float    @default(0.10)
+  commission_amount  Float
+  /// gross_amount - commission_amount
+  net_amount         Float
+  /// PENDING | PAID
+  settlement_status  String   @default("PENDING")
+  created_at         DateTime @default(now())
+
+  order              order    @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  factory            factory? @relation(fields: [factory_id], references: [factory_id], onDelete: Cascade)
+
+  @@index([order_id])
+  @@index([factory_id])
 }

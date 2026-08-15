@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Trash2, Search } from 'lucide-react';
+import { Trash2, UserCheck, UserX } from 'lucide-react';
 import api from '../../lib/api';
 import { PageLoader } from '../../components/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -21,6 +21,16 @@ export default function AdminUsers() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: () => toast.error('Failed to delete user'),
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: 'ACTIVE' | 'DISABLED' }) =>
+      api.put(`/users/${id}/status`, { account_status: status }),
+    onSuccess: () => {
+      toast.success('User status updated');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => toast.error(error?.response?.data?.message || 'Failed to update user status'),
   });
 
   if (isLoading) return <PageLoader />;
@@ -54,6 +64,7 @@ export default function AdminUsers() {
               full_name: string;
               email: string;
               role: string;
+              account_status: 'ACTIVE' | 'DISABLED';
               phone_number: string | null;
               created_at: string;
             }) => (
@@ -77,6 +88,14 @@ export default function AdminUsers() {
                 <td className="px-6 py-4 text-sm text-slate-600">{user.phone_number || '—'}</td>
                 <td className="px-6 py-4 text-sm text-slate-500">{new Date(user.created_at).toLocaleDateString()}</td>
                 <td className="px-6 py-4 text-right">
+                  <button
+                    onClick={() => statusMutation.mutate({ id: user.user_id, status: user.account_status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE' })}
+                    disabled={statusMutation.isPending}
+                    title={user.account_status === 'ACTIVE' ? 'Disable user' : 'Enable user'}
+                    className={`mr-1.5 inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 ${user.account_status === 'ACTIVE' ? 'bg-red-50 text-red-700 hover:bg-red-100' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
+                  >
+                    {user.account_status === 'ACTIVE' ? <><UserX size={14} /> Disable</> : <><UserCheck size={14} /> Enable</>}
+                  </button>
                   <button
                     onClick={() => { if (confirm('Delete this user?')) deleteMutation.mutate(user.user_id); }}
                     className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

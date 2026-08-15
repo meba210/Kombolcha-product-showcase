@@ -66,58 +66,7 @@ export default function MessagesPage() {
     refetchInterval: 5000,
   });
 
-  // const sendMutation = useMutation({
-  //   mutationFn: (payload: { content: string; attachment_url?: string }) =>
-  //     api.post('/messages', {
-  //       receiver_id: Number(selectedUserId),
-  //       message_content: payload.content,
-  //       attachment_url: payload.attachment_url,
-  //       product_id: productId,
-  //       product_name: productName,
-  //       product_image: productImage,
-  //     }),
-  //   onMutate: async (payload: { content: string; attachment_url?: string }) => {
-  //     await queryClient.cancelQueries({
-  //       queryKey: ['conversation', selectedUserId],
-  //     });
-  //     const previousData = queryClient.getQueryData<any>([
-  //       'conversation',
-  //       selectedUserId,
-  //     ]);
-  //     const tempMessage = {
-  //       message_id: Date.now() * -1,
-  //       sender_id: user?.user_id,
-  //       receiver_id: selectedUserId,
-  //       message_content: payload.content,
-  //       attachment_url: payload.attachment_url,
-  //       send_date: new Date().toISOString(),
-  //       message_status: 'SENT',
-  //       sender: { full_name: user?.full_name ?? '', role: user?.role ?? '' },
-  //     };
-  //     queryClient.setQueryData(
-  //       ['conversation', selectedUserId],
-  //       (old: any) => ({
-  //         ...old,
-  //         messages: [...(old?.messages || []), tempMessage],
-  //       })
-  //     );
-  //     return { previousData };
-  //   },
-  //   onError: (_err, _content, context: any) => {
-  //     queryClient.setQueryData(
-  //       ['conversation', selectedUserId],
-  //       context?.previousData
-  //     );
-  //     toast.error('Failed to send message');
-  //   },
-  //   onSettled: () => {
-  //     setNewMessage('');
-  //     queryClient.invalidateQueries({
-  //       queryKey: ['conversation', selectedUserId],
-  //     });
-  //     queryClient.invalidateQueries({ queryKey: ['inbox'] });
-  //   },
-  // });
+
 
 useEffect(() => {
   const productId = searchParams.get('product_id');
@@ -167,7 +116,7 @@ useEffect(() => {
         message_content: payload.content,
         attachment_url: payload.attachment_url,
 
-        // Add these for the optimistic UI
+       
         product_id: payload.product_id,
         product_name: payload.product_name,
         product_image: payload.product_image,
@@ -217,11 +166,7 @@ useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversationData, selectedUserId]);
 
-  // const handleSend = (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (!newMessage.trim() || !selectedUserId) return;
-  //   sendMutation.mutate({ content: newMessage.trim() });
-  // };
+ 
 
  const handleSend = (e: React.FormEvent) => {
    e.preventDefault();
@@ -238,8 +183,7 @@ useEffect(() => {
      }),
    });
 
-   // IMPORTANT:
-   // After sending the inquiry, make the next message normal.
+   
    setInquiryProduct(null);
  };
 

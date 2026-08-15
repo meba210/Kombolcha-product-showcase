@@ -141,6 +141,8 @@ export const getAllOrders = async (
     const where: Record<string, unknown> = {};
     if (status) where.order_status = status;
 
+    let factoryId: number | null = null;
+
     if (req.user!.role === 'FACTORY') {
       const factory = await prisma.factory.findUnique({
         where: { user_id: req.user!.user_id },
@@ -149,6 +151,7 @@ export const getAllOrders = async (
         res.status(404).json({ success: false, message: 'Factory not found' });
         return;
       }
+      factoryId = factory.factory_id;
       where.orderitem = {
         some: { product: { factory_id: factory.factory_id } },
       };
@@ -163,8 +166,23 @@ export const getAllOrders = async (
           buyer: {
             include: { user: { select: { full_name: true, email: true } } },
           },
-          orderitem: { include: { product: true } },
+          orderitem: {
+            include: {
+              product: {
+                include: {
+                  factory: { select: { factory_id: true, factory_name: true } },
+                },
+              },
+            },
+          },
           payment: true,
+          // Include settlement breakdown for admin (all rows) and factory (own row only)
+          settlement: {
+            where: factoryId ? { factory_id: factoryId } : {},
+            include: {
+              factory: { select: { factory_id: true, factory_name: true } },
+            },
+          },
         },
         orderBy: { order_date: 'desc' },
       }),

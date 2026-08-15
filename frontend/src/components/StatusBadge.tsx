@@ -18,6 +18,8 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   READ: { label: 'Read', className: 'badge-gray' },
   SETTLED: { label: 'Settled', className: 'badge-green' },
   UNSETTLED: { label: 'Unsettled', className: 'badge-yellow' },
+  PAID: { label: 'Paid', className: 'badge-green' },
+  CALCULATED: { label: 'Calculated', className: 'badge-blue' },
 };
 
 interface StatusBadgeProps {
