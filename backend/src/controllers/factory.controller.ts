@@ -7,7 +7,7 @@ export const getAllFactories = async (_req: AuthRequest, res: Response): Promise
     const factories = await prisma.factory.findMany({
       where: { approval_status: 'APPROVED' },
       include: {
-        user: { select: { full_name: true, email: true, phone_number: true } },
+        user: { select: { full_name: true, email: true, phone_number: true, } },
         _count: { select: { product: true } },
       },
       orderBy: { factory_name: 'asc' },

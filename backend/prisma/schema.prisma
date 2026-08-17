@@ -76,6 +76,8 @@ model factory {
   user_id         Int          @unique(map: "Factory_user_id_key")
   factory_name    String
   location        String
+  latitude        Float?
+  longitude       Float?
   approval_status String       @default("PENDING")
   user            user         @relation(fields: [user_id], references: [user_id], onDelete: Cascade, map: "Factory_user_id_fkey")
   product         product[]

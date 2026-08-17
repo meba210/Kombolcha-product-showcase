@@ -143,3 +143,104 @@ export const getFactoryReport = async (req: AuthRequest, res: Response): Promise
     res.status(500).json({ success: false, message: 'Failed to generate factory report' });
   }
 };
+
+/**
+ * GET /api/reports/highlights  (public — no auth)
+ * Returns the most-searched product and its factory,
+ * plus a fallback to the most-ordered product if no search history exists.
+ */
+export const getPublicHighlights = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // 1. Find the most searched keyword
+    const topSearch = await prisma.searchhistory.groupBy({
+      by: ['search_keyword'],
+      _count: { history_id: true },
+      orderBy: { _count: { history_id: 'desc' } },
+      take: 1,
+    });
+
+    let featuredProduct = null;
+
+    if (topSearch.length > 0) {
+      const keyword = topSearch[0].search_keyword;
+      // Find a real product matching that keyword
+      featuredProduct = await prisma.product.findFirst({
+        where: {
+          product_name: { contains: keyword },
+          availability_status: 'AVAILABLE',
+          factory_id: { not: null },
+        },
+        include: {
+          factory: {
+            include: {
+              user: { select: { full_name: true } },
+              _count: { select: { product: true } },
+            },
+          },
+          category: { select: { category_name: true } },
+        },
+        orderBy: { created_at: 'desc' },
+      });
+    }
+
+    // 2. Fallback: most ordered product that belongs to a factory
+    if (!featuredProduct) {
+      const topOrdered = await prisma.orderitem.groupBy({
+        by: ['product_id'],
+        _sum: { quantity: true },
+        orderBy: { _sum: { quantity: 'desc' } },
+        take: 10,
+      });
+
+      for (const item of topOrdered) {
+        const p = await prisma.product.findFirst({
+          where: {
+            product_id: item.product_id,
+            availability_status: 'AVAILABLE',
+            factory_id: { not: null },
+          },
+          include: {
+            factory: {
+              include: {
+                user: { select: { full_name: true } },
+                _count: { select: { product: true } },
+              },
+            },
+            category: { select: { category_name: true } },
+          },
+        });
+        if (p) { featuredProduct = p; break; }
+      }
+    }
+
+    // 3. Final fallback: newest factory product
+    if (!featuredProduct) {
+      featuredProduct = await prisma.product.findFirst({
+        where: { availability_status: 'AVAILABLE', factory_id: { not: null } },
+        include: {
+          factory: {
+            include: {
+              user: { select: { full_name: true } },
+              _count: { select: { product: true } },
+            },
+          },
+          category: { select: { category_name: true } },
+        },
+        orderBy: { created_at: 'desc' },
+      });
+    }
+
+    // Total search count for the top keyword
+    const searchCount = topSearch[0]?._count?.history_id ?? 0;
+
+    res.json({
+      success: true,
+      topKeyword: topSearch[0]?.search_keyword ?? null,
+      searchCount,
+      featuredProduct,
+    });
+  } catch (error) {
+    console.error('GetPublicHighlights error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch highlights' });
+  }
+};

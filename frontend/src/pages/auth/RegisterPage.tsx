@@ -4,6 +4,7 @@ import { Factory, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
+import FactoryLocationPicker from '../../components/FactoryLocationPicker';
 
 type Role = 'BUYER' | 'FACTORY';
 
@@ -17,6 +18,8 @@ export default function RegisterPage() {
     address: '',
     factory_name: '',
     location: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,6 +40,8 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
         phone_number: form.phone_number || undefined,
+        latitude:form.latitude || undefined,
+        longitude:form.longitude || undefined,
         role,
         address: role === 'BUYER' ? form.address || undefined : undefined,
         factory_name:
@@ -194,14 +199,20 @@ export default function RegisterPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                      Location
+                      Factory Location
                     </label>
-                    <input
-                      name="location"
-                      value={form.location}
-                      onChange={handleChange}
-                      placeholder="Kombolcha Industrial Zone"
-                      className="input-field"
+
+                    <FactoryLocationPicker
+                      latitude={form.latitude}
+                      longitude={form.longitude}
+                      onLocationSelect={(latitude, longitude, address) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          location: address,
+                          latitude,
+                          longitude,
+                        }));
+                      }}
                     />
                   </div>
                 </>
