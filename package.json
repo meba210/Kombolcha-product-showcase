@@ -1,13 +1,16 @@
 {
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^26.1.2",
     "prisma": "^6.19.3"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "cloudinary": "^1.41.3",
+    "leaflet": "^1.9.4",
     "multer": "^2.2.0",
-    "multer-storage-cloudinary": "^4.0.0"
+    "multer-storage-cloudinary": "^4.0.0",
+    "react-leaflet": "^5.0.0"
   }
 }

@@ -2,13 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet map styles */
+@import 'leaflet/dist/leaflet.css';
+
 @layer base {
   * {
     box-sizing: border-box;
   }
 
   body {
-    @apply font-sans text-smoke-900 bg-dust-50 antialiased;
+    @apply font-sans text-smoke-900 bg-white antialiased;
   }
 
   h1,

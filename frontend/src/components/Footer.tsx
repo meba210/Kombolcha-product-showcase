@@ -1,7 +1,12 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Factory, Mail, Phone, MapPin } from 'lucide-react';
 
 export default function Footer() {
+  const { pathname } = useLocation();
+
+  // The homepage has its own full footer section built in — skip the shared one
+  if (pathname === '/') return null;
+
   return (
     <footer className="bg-slate-900 text-slate-300 mt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -14,11 +19,11 @@ export default function Footer() {
               </div>
               <div>
                 <span className="font-bold text-white text-lg block leading-tight">Kombolcha Showcase</span>
-                <span className="text-xs text-slate-400">AI-Powered Factory Products</span>
+                <span className="text-xs text-slate-400">Factory Products Marketplace</span>
               </div>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
-              Connecting Kombolcha's industrial factories with buyers through an intelligent digital marketplace.
+              Connecting Kombolcha's industrial factories with buyers through a trusted digital marketplace.
               Discover textiles, steel, food products, and construction materials.
             </p>
           </div>
@@ -28,10 +33,10 @@ export default function Footer() {
             <h3 className="text-white font-semibold mb-4 text-sm">Quick Links</h3>
             <ul className="space-y-2">
               {[
-                { to: '/products', label: 'Browse Products' },
-                { to: '/factories', label: 'Our Factories' },
-                { to: '/register', label: 'Register' },
-                { to: '/login', label: 'Login' },
+                { to: '/products',  label: 'Browse Products' },
+                { to: '/factories', label: 'Our Factories'   },
+                { to: '/register',  label: 'Register'        },
+                { to: '/login',     label: 'Login'           },
               ].map((link) => (
                 <li key={link.to}>
                   <Link to={link.to} className="text-sm text-slate-400 hover:text-white transition-colors">
@@ -64,11 +69,9 @@ export default function Footer() {
 
         <div className="border-t border-slate-800 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} Kombolcha Showcase Platform.
+            © {new Date().getFullYear()} Kombolcha Showcase Platform. All rights reserved.
           </p>
-          <p className="text-xs text-slate-500">
-            Built with React, Node.js & AI
-          </p>
+          <p className="text-xs text-slate-500">Made with care in Ethiopia</p>
         </div>
       </div>
     </footer>
