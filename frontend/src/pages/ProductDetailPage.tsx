@@ -13,8 +13,10 @@ import { useCartStore } from '../store/cartStore';
 import toast from 'react-hot-toast';
 import { PageLoader } from '../components/LoadingSpinner';
 import StatusBadge from '../components/StatusBadge';
+import { useTranslation } from 'react-i18next';
 
 export default function ProductDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { user, isAuthenticated } = useAuthStore();
   const { setCart } = useCartStore();
@@ -26,7 +28,7 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = async () => {
     if (!isAuthenticated || user?.role !== 'BUYER') {
-      toast.error('Please login as a buyer');
+      toast.error(t('loginAsBuyer'));
       return;
     }
     try {
@@ -35,10 +37,10 @@ export default function ProductDetailPage() {
         quantity: Number(1),
       });
       setCart(res.data.cart);
-      toast.success('Added to cart');
+      toast.success(t('addedToCart'));
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'Failed to add to cart');
+      toast.error(error.response?.data?.message || t('failedAddToCart'));
     }
   };
 
@@ -70,9 +72,9 @@ export default function ProductDetailPage() {
   if (!data?.product)
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-        <p className="text-slate-500">Product not found</p>
+        <p className="text-slate-500">{t('productNotFound')}</p>
         <Link to="/products" className="btn-primary mt-4 inline-flex">
-          Back to Products
+          {t('backToProducts')}
         </Link>
       </div>
     );
@@ -81,7 +83,7 @@ export default function ProductDetailPage() {
 
   const handleContactSeller = () => {
     if (!isAuthenticated) {
-      toast.error('Please login to contact the seller');
+      toast.error(t('loginToContact'));
       return;
     }
 
@@ -90,7 +92,7 @@ export default function ProductDetailPage() {
       : product.factory?.user;
 
     if (!recipient) {
-      toast.error('Seller information not available');
+      toast.error(t('sellerNotAvailable'));
       return;
     }
 
@@ -182,10 +184,10 @@ export default function ProductDetailPage() {
 
                 <span>·</span>
 
-                <span>Admin</span>
+                <span>{t('adminRole')}</span>
               </>
             ) : (
-              <span>Seller information unavailable</span>
+              <span>{t('sellerUnavailable')}</span>
             )}
           </div>
           <div className="text-4xl font-bold text-slate-900 mb-6">
@@ -194,7 +196,7 @@ export default function ProductDetailPage() {
 
           {product.description && (
             <div className="mb-6">
-              <h3 className="font-semibold text-slate-800 mb-2">Description</h3>
+              <h3 className="font-semibold text-slate-800 mb-2">{t('description')}</h3>
               <p className="text-slate-600 leading-relaxed">
                 {product.description}
               </p>
@@ -203,13 +205,13 @@ export default function ProductDetailPage() {
 
           <div className="grid grid-cols-2 gap-4 mb-8 p-4 bg-slate-50 rounded-xl">
             <div>
-              <p className="text-xs text-slate-500 mb-1">Stock Quantity</p>
+              <p className="text-xs text-slate-500 mb-1">{t('stockQuantity')}</p>
               <p className="font-semibold text-slate-800">
-                {product.stock_quantity} units
+                {product.stock_quantity} {t('units')}
               </p>
             </div>
             <div>
-              <p className="text-xs text-slate-500 mb-1">Category</p>
+              <p className="text-xs text-slate-500 mb-1">{t('category')}</p>
               <p className="font-semibold text-slate-800">
                 {product.category.category_name}
               </p>
@@ -223,14 +225,14 @@ export default function ProductDetailPage() {
               className="btn-primary flex-1 flex items-center justify-center gap-2 py-3"
             >
               <ShoppingCart size={18} />
-              Add to Cart
+              {t('addToCart')}
             </button>
             <button
               onClick={handleContactSeller}
               className="btn-secondary flex items-center gap-2 px-5 py-3"
             >
               <MessageSquare size={18} />
-              Contact Seller
+              {t('contactSeller')}
             </button>
           </div>
         </div>

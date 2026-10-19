@@ -5,6 +5,7 @@ import { useCartStore } from '../store/cartStore';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 export interface Product {
   product_id: number;
@@ -23,13 +24,14 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useAuthStore();
   const { setCart } = useCartStore();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated || user?.role !== 'BUYER') {
-      toast.error('Please login as a buyer to add items to cart');
+      toast.error(t('loginAsBuyer'));
       return;
     }
     try {
@@ -38,10 +40,10 @@ export default function ProductCard({ product }: ProductCardProps) {
         quantity: Number(1),
       });
       setCart(res.data.cart);
-      toast.success('Added to cart');
+      toast.success(t('addedToCart'));
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'Failed to add to cart');
+      toast.error(error.response?.data?.message || t('failedAddToCart'));
     }
   };
 
@@ -66,7 +68,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               <div className="w-16 h-16 mx-auto mb-2 bg-slate-200 rounded-full flex items-center justify-center">
                 <span className="text-2xl">📦</span>
               </div>
-              <p className="text-xs text-slate-400">No image</p>
+              <p className="text-xs text-slate-400">{t('noImage')}</p>
             </div>
           </div>
         )}
@@ -78,7 +80,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               isAvailable ? 'badge-green' : 'badge-red'
             )}
           >
-            {isAvailable ? 'In Stock' : 'Out of Stock'}
+            {t(isAvailable ? 'inStock' : 'outOfStock')}
           </span>
         </div>
       </div>
@@ -92,7 +94,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {product.product_name}
         </h3>
         <p className="text-xs text-slate-500 mb-3 truncate">
-          {product.factory?.factory_name || 'No Factory'}
+          {product.factory?.factory_name || t('noFactory')}
         </p>
 
         <div className="flex items-center justify-between">
@@ -109,7 +111,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                   ? 'bg-primary-50 text-primary-600 hover:bg-primary-100'
                   : 'bg-slate-100 text-slate-400 cursor-not-allowed'
               )}
-              title="Add to cart"
+              title={t('addToCart')}
             >
               <ShoppingCart size={16} />
             </button>

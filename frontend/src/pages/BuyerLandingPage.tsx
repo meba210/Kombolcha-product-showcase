@@ -12,53 +12,55 @@ import {
   Clock,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { useTranslation } from 'react-i18next';
 
 const quickActions = [
   {
     icon: ShoppingBag,
-    label: 'Browse Products',
-    desc: 'Explore the full catalog',
+    labelKey: 'browseProducts',
+    descKey: 'browseProductsDesc',
     to: '/products',
     color: 'bg-blue-50 text-blue-600',
   },
   {
     icon: ClipboardList,
-    label: 'My Orders',
-    desc: 'Track your purchases',
+    labelKey: 'myOrders',
+    descKey: 'myOrdersDesc',
     to: '/orders',
     color: 'bg-green-50 text-green-600',
   },
   {
     icon: Sparkles,
-    label: 'Recommendations',
-    desc: 'AI-picked for you',
+    labelKey: 'recommendations',
+    descKey: 'recommendationsDesc',
     to: '/recommendations',
     color: 'bg-purple-50 text-purple-600',
   },
   {
     icon: MessageSquare,
-    label: 'Messages',
-    desc: 'Chat with suppliers',
+    labelKey: 'messages',
+    descKey: 'messagesDesc',
     to: '/messages',
     color: 'bg-orange-50 text-orange-600',
   },
 ];
 
 const highlights = [
-  { icon: Package, label: 'Products available', value: '1,200+' },
-  { icon: TrendingUp, label: 'Verified suppliers', value: '120+' },
-  { icon: Clock, label: 'Avg. delivery', value: '3–5 days' },
+  { icon: Package, labelKey: 'productsAvailableLabel', value: '1,200+' },
+  { icon: TrendingUp, labelKey: 'verifiedSuppliers', value: '120+' },
+  { icon: Clock, labelKey: 'avgDelivery', value: '3–5 days' },
 ];
 
 const suggestions = [
-  'Steel beams',
-  'Fabric rolls',
-  'Cement bags',
-  'Sesame oil',
-  'Packaging',
+  'steelBeams',
+  'fabricRolls',
+  'cementBags',
+  'sesameOil',
+  'packaging',
 ];
 
 export default function BuyerLandingPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const firstName = user?.full_name?.split(' ')[0] ?? 'there';
@@ -78,17 +80,15 @@ export default function BuyerLandingPage() {
       {/* Greeting */}
       <div>
         <h1 className="text-2xl font-bold text-smoke-900">
-          Welcome back, {firstName} 👋
+          {t('welcomeBackName', { name: firstName })} 👋
         </h1>
-        <p className="text-smoke-500 mt-1 text-sm">
-          Here's what's waiting for you today.
-        </p>
+        <p className="text-smoke-500 mt-1 text-sm">{t('buyerDailyGreeting')}</p>
       </div>
 
       {/* ── Search bar ── */}
       <div className="bg-white border border-smoke-200 rounded-2xl shadow-sm p-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-smoke-400 mb-3">
-          Search products
+          {t('searchProducts')}
         </p>
         <form onSubmit={handleSearch} className="flex gap-3">
           <div className="relative flex-1">
@@ -100,7 +100,7 @@ export default function BuyerLandingPage() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for steel, fabric, cement…"
+              placeholder={t('searchProductsPlaceholder')}
               className="w-full pl-11 pr-4 py-3 rounded-xl border border-smoke-200 bg-smoke-50 text-smoke-900 placeholder-smoke-400 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
             />
           </div>
@@ -108,7 +108,7 @@ export default function BuyerLandingPage() {
             type="submit"
             className="btn-primary px-6 py-3 text-sm rounded-xl flex items-center gap-2 shrink-0"
           >
-            Search <ArrowRight size={15} />
+            {t('search')} <ArrowRight size={15} />
           </button>
         </form>
 
@@ -119,11 +119,11 @@ export default function BuyerLandingPage() {
               key={s}
               type="button"
               onClick={() =>
-                navigate(`/products?search=${encodeURIComponent(s)}`)
+                navigate(`/products?search=${encodeURIComponent(t(s))}`)
               }
               className="text-xs px-3 py-1.5 rounded-full border border-smoke-200 bg-smoke-50 text-smoke-600 hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-colors"
             >
-              {s}
+              {t(s)}
             </button>
           ))}
         </div>
@@ -133,7 +133,7 @@ export default function BuyerLandingPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {highlights.map((h) => (
           <div
-            key={h.label}
+            key={h.labelKey}
             className="flex items-center gap-4 bg-white border border-smoke-200 rounded-xl px-5 py-4 shadow-sm"
           >
             <div className="w-10 h-10 rounded-lg bg-smoke-100 flex items-center justify-center text-smoke-600 shrink-0">
@@ -141,7 +141,7 @@ export default function BuyerLandingPage() {
             </div>
             <div>
               <p className="text-xl font-bold text-smoke-900">{h.value}</p>
-              <p className="text-xs text-smoke-500">{h.label}</p>
+              <p className="text-xs text-smoke-500">{t(h.labelKey)}</p>
             </div>
           </div>
         ))}
@@ -150,12 +150,12 @@ export default function BuyerLandingPage() {
       {/* Quick actions */}
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-widest text-smoke-400 mb-4">
-          Quick actions
+          {t('quickActions')}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action) => (
             <Link
-              key={action.label}
+              key={action.labelKey}
               to={action.to}
               className="group flex flex-col gap-3 bg-white border border-smoke-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-smoke-300 transition-all duration-200"
             >
@@ -166,9 +166,11 @@ export default function BuyerLandingPage() {
               </div>
               <div>
                 <p className="font-semibold text-smoke-900 group-hover:text-primary-600 transition-colors">
-                  {action.label}
+                  {t(action.labelKey)}
                 </p>
-                <p className="text-xs text-smoke-500 mt-0.5">{action.desc}</p>
+                <p className="text-xs text-smoke-500 mt-0.5">
+                  {t(action.descKey)}
+                </p>
               </div>
               <ArrowRight
                 size={14}
@@ -186,9 +188,11 @@ export default function BuyerLandingPage() {
             <Sparkles size={22} />
           </div>
           <div>
-            <p className="font-semibold text-lg">AI Recommendations ready</p>
+            <p className="font-semibold text-lg">
+              {t('aiRecommendationsReady')}
+            </p>
             <p className="text-primary-100 text-sm mt-0.5">
-              Products picked based on your browsing and order history.
+              {t('aiRecommendationsDesc')}
             </p>
           </div>
         </div>
@@ -196,16 +200,16 @@ export default function BuyerLandingPage() {
           to="/recommendations"
           className="shrink-0 bg-white text-primary-700 font-semibold text-sm px-5 py-2.5 rounded-lg hover:bg-primary-50 transition-colors flex items-center gap-2"
         >
-          View picks <ArrowRight size={15} />
+          {t('viewPicks')} <ArrowRight size={15} />
         </Link>
       </div>
 
       {/* Browse CTA */}
       <div className="border border-smoke-200 rounded-2xl p-6 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <p className="font-semibold text-smoke-900">Ready to order?</p>
+          <p className="font-semibold text-smoke-900">{t('readyToOrder')}</p>
           <p className="text-sm text-smoke-500 mt-0.5">
-            Browse the full catalog and add items to your cart.
+            {t('readyToOrderDesc')}
           </p>
         </div>
         <div className="flex gap-3 shrink-0">
@@ -213,10 +217,10 @@ export default function BuyerLandingPage() {
             to="/products"
             className="btn-primary px-5 py-2 text-sm flex items-center gap-2"
           >
-            Browse products <ArrowRight size={15} />
+            {t('browseProducts')} <ArrowRight size={15} />
           </Link>
           <Link to="/cart" className="btn-secondary px-5 py-2 text-sm">
-            View cart
+            {t('viewCart')}
           </Link>
         </div>
       </div>

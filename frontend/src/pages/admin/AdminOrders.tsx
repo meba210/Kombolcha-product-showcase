@@ -5,6 +5,7 @@ import api from '../../lib/api';
 import { PageLoader } from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,7 @@ function deriveBreakdown(order: Order): SettlementRow[] {
 // ─── Sub-component: Seller Breakdown Panel ────────────────────────────────────
 
 function SellerBreakdown({ order }: { order: Order }) {
+  const { t } = useTranslation();
   const rows: SettlementRow[] =
     order.settlement.length > 0 ? order.settlement : deriveBreakdown(order);
 
@@ -116,13 +118,13 @@ function SellerBreakdown({ order }: { order: Order }) {
                   <Building2 size={15} className="text-slate-400 shrink-0" />
                 )}
                 <span className="font-medium text-slate-800 truncate">
-                  {isAdmin ? 'Platform (Admin)' : row.factory!.factory_name}
+                  {isAdmin ? t('platformAdmin') : row.factory!.factory_name}
                 </span>
               </div>
 
               {/* Gross */}
               <div className="flex flex-col min-w-[90px]">
-                <span className="text-xs text-slate-400">Gross</span>
+        <span className="text-xs text-slate-400">{t('gross')}</span>
                 <span className="font-semibold text-slate-800">
                   ETB {Number(row.gross_amount).toLocaleString()}
                 </span>
@@ -131,7 +133,7 @@ function SellerBreakdown({ order }: { order: Order }) {
               {/* Commission */}
               <div className="flex flex-col min-w-[110px]">
                 <span className="text-xs text-slate-400">
-                  Commission ({(row.commission_rate * 100).toFixed(0)}%)
+                  {t('platformCommissionRate', { rate: (row.commission_rate * 100).toFixed(0) })}
                 </span>
                 <span
                   className={`font-semibold ${
@@ -147,7 +149,7 @@ function SellerBreakdown({ order }: { order: Order }) {
               {/* Net */}
               <div className="flex flex-col min-w-[100px]">
                 <span className="text-xs text-slate-400">
-                  {isAdmin ? 'Platform Earns' : 'Factory Receives'}
+                  {isAdmin ? t('platformEarns') : t('factoryReceives')}
                 </span>
                 <span className="font-semibold text-green-700">
                   ETB {Number(row.net_amount).toLocaleString()}
@@ -169,13 +171,13 @@ function SellerBreakdown({ order }: { order: Order }) {
       {rows.length > 1 && (
         <div className="mt-3 pt-3 border-t border-slate-200 flex flex-wrap gap-x-8 gap-y-1 text-sm">
           <span className="text-slate-500">
-            Total paid by buyer:{' '}
+            {t('totalPaidByBuyer')}{' '}
             <strong className="text-slate-800">
               ETB {Number(order.total_amount).toLocaleString()}
             </strong>
           </span>
           <span className="text-slate-500">
-            Platform commission collected:{' '}
+            {t('platformCommissionCollected')}{' '}
             <strong className="text-orange-600">
               ETB {Number(totalCommission).toLocaleString()}
             </strong>
@@ -189,6 +191,7 @@ function SellerBreakdown({ order }: { order: Order }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminOrders() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
@@ -205,7 +208,7 @@ export default function AdminOrders() {
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       api.put(`/orders/${id}/status`, { order_status: status }),
     onSuccess: () => {
-      toast.success('Order updated');
+      toast.success(t('orderUpdated'));
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
     },
   });
@@ -234,9 +237,9 @@ export default function AdminOrders() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Order Management</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{t('orderManagement')}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Every order shows a full seller breakdown — click a row to expand.
+            {t('orderManagementDesc')}
           </p>
         </div>
 
@@ -246,9 +249,9 @@ export default function AdminOrders() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="input-field text-sm py-1.5 w-40"
         >
-          <option value="">All statuses</option>
+          <option value="">{t('allStatuses')}</option>
           {['PENDING', 'CONFIRMED', 'DELIVERED', 'CANCELLED'].map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s}>{t(s.toLowerCase())}</option>
           ))}
         </select>
       </div>
@@ -256,13 +259,13 @@ export default function AdminOrders() {
       {/* Summary pills */}
       <div className="flex flex-wrap gap-3 mb-6">
         {[
-          { label: 'Total Orders', value: orders.length, color: 'bg-slate-100 text-slate-700' },
-          { label: 'Admin-only', value: adminOnlyOrders.length, color: 'bg-blue-50 text-blue-700' },
-          { label: 'Factory-only', value: factoryOnlyOrders.length, color: 'bg-purple-50 text-purple-700' },
-          { label: 'Mixed (both)', value: mixedOrders.length, color: 'bg-orange-50 text-orange-700' },
+          { labelKey: 'totalOrders', value: orders.length, color: 'bg-slate-100 text-slate-700' },
+          { labelKey: 'adminOnly', value: adminOnlyOrders.length, color: 'bg-blue-50 text-blue-700' },
+          { labelKey: 'factoryOnly', value: factoryOnlyOrders.length, color: 'bg-purple-50 text-purple-700' },
+          { labelKey: 'mixedBoth', value: mixedOrders.length, color: 'bg-orange-50 text-orange-700' },
         ].map((pill) => (
-          <div key={pill.label} className={`px-4 py-2 rounded-xl text-sm font-semibold ${pill.color}`}>
-            {pill.label}: {pill.value}
+          <div key={pill.labelKey} className={`px-4 py-2 rounded-xl text-sm font-semibold ${pill.color}`}>
+            {t(pill.labelKey)}: {pill.value}
           </div>
         ))}
       </div>
@@ -271,15 +274,15 @@ export default function AdminOrders() {
       <div className="card overflow-hidden">
         <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">All Orders</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{t('allOrders')}</h2>
             <p className="text-sm text-slate-500 mt-0.5">
-              Click any row to see the seller split calculation.
+              {t('clickRowSellerSplit')}
             </p>
           </div>
         </div>
 
         {orders.length === 0 ? (
-          <div className="text-center py-14 text-slate-400">No orders found.</div>
+          <div className="text-center py-14 text-slate-400">{t('noOrdersFound')}</div>
         ) : (
           <div className="divide-y divide-slate-100">
             {orders.map((order) => {
@@ -356,7 +359,7 @@ export default function AdminOrders() {
                       {order.payment ? (
                         <StatusBadge status={order.payment.payment_status} />
                       ) : (
-                        <span className="text-slate-400 text-xs">No payment</span>
+                        <span className="text-slate-400 text-xs">{t('noPayment')}</span>
                       )}
                     </div>
 
@@ -381,7 +384,7 @@ export default function AdminOrders() {
                         {['PENDING', 'CONFIRMED', 'DELIVERED', 'CANCELLED'].map(
                           (s) => (
                             <option key={s} value={s}>
-                              {s}
+                              {t(s.toLowerCase())}
                             </option>
                           )
                         )}

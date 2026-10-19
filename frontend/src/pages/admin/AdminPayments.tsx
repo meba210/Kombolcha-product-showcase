@@ -2,8 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { PageLoader } from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminPayments() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ['payments'],
     queryFn: () => api.get('/payments?limit=50').then((r) => r.data),
@@ -13,18 +15,18 @@ export default function AdminPayments() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Payment Management</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">{t('paymentManagement')}</h1>
       <div className="card overflow-hidden">
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Transaction</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Buyer</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Amount</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Method</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Status</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Settlement</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Date</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('transaction')}</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('buyer')}</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('amount')}</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('method')}</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('status')}</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('settlement')}</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('date')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -53,7 +55,7 @@ export default function AdminPayments() {
           </tbody>
         </table>
         {data?.payments?.length === 0 && (
-          <div className="text-center py-12 text-slate-400">No payments yet</div>
+          <div className="text-center py-12 text-slate-400">{t('noPaymentsYet')}</div>
         )}
       </div>
     </div>
