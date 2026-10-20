@@ -145,7 +145,10 @@ export default function AboutPage() {
                 { numKey: 'aboutElevationStatValue', descKey: 'elevation' },
                 { num: '130,000+', descKey: 'populationShort' },
                 { numKey: 'aboutSinceStatValue', descKey: 'industrialHistory' },
-                { numKey: 'industrialParkStatValue', descKey: 'industrialParkOpened' },
+                {
+                  numKey: 'industrialParkStatValue',
+                  descKey: 'industrialParkOpened',
+                },
               ].map((s) => (
                 <div key={s.descKey}>
                   <span className="text-sm font-bold text-smoke-900">
