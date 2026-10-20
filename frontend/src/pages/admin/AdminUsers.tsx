@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Trash2, Search } from 'lucide-react';
+import { Trash2, UserCheck, UserX } from 'lucide-react';
 import api from '../../lib/api';
 import { PageLoader } from '../../components/LoadingSpinner';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminUsers() {
+  const { t } = useTranslation();
   const [roleFilter, setRoleFilter] = useState('');
   const queryClient = useQueryClient();
 
@@ -17,10 +19,20 @@ export default function AdminUsers() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/users/${id}`),
     onSuccess: () => {
-      toast.success('User deleted');
+      toast.success(t('userDeleted'));
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
-    onError: () => toast.error('Failed to delete user'),
+    onError: () => toast.error(t('failedDeleteUser')),
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: 'ACTIVE' | 'DISABLED' }) =>
+      api.put(`/users/${id}/status`, { account_status: status }),
+    onSuccess: () => {
+      toast.success(t('userStatusUpdated'));
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => toast.error(error?.response?.data?.message || t('failedUpdateUserStatus')),
   });
 
   if (isLoading) return <PageLoader />;
@@ -28,12 +40,12 @@ export default function AdminUsers() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t('userManagement')}</h1>
         <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="input-field w-40">
-          <option value="">All Roles</option>
-          <option value="BUYER">Buyers</option>
-          <option value="FACTORY">Factories</option>
-          <option value="ADMIN">Admins</option>
+          <option value="">{t('allRoles')}</option>
+          <option value="BUYER">{t('buyers')}</option>
+          <option value="FACTORY">{t('factories')}</option>
+          <option value="ADMIN">{t('admins')}</option>
         </select>
       </div>
 
@@ -41,11 +53,11 @@ export default function AdminUsers() {
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">User</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Role</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Phone</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Joined</th>
-              <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Actions</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('user')}</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('role')}</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('phone')}</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('joined')}</th>
+              <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase">{t('actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -54,6 +66,7 @@ export default function AdminUsers() {
               full_name: string;
               email: string;
               role: string;
+              account_status: 'ACTIVE' | 'DISABLED';
               phone_number: string | null;
               created_at: string;
             }) => (
@@ -71,14 +84,22 @@ export default function AdminUsers() {
                 </td>
                 <td className="px-6 py-4">
                   <span className={`badge ${user.role === 'ADMIN' ? 'badge-red' : user.role === 'FACTORY' ? 'badge-blue' : 'badge-green'}`}>
-                    {user.role}
+                    {t(user.role === 'ADMIN' ? 'adminRole' : user.role === 'FACTORY' ? 'factoryRole' : 'buyerRole')}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600">{user.phone_number || '—'}</td>
                 <td className="px-6 py-4 text-sm text-slate-500">{new Date(user.created_at).toLocaleDateString()}</td>
                 <td className="px-6 py-4 text-right">
                   <button
-                    onClick={() => { if (confirm('Delete this user?')) deleteMutation.mutate(user.user_id); }}
+                    onClick={() => statusMutation.mutate({ id: user.user_id, status: user.account_status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE' })}
+                    disabled={statusMutation.isPending}
+                    title={user.account_status === 'ACTIVE' ? t('disableUser') : t('enableUser')}
+                    className={`mr-1.5 inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 ${user.account_status === 'ACTIVE' ? 'bg-red-50 text-red-700 hover:bg-red-100' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
+                  >
+                    {user.account_status === 'ACTIVE' ? <><UserX size={14} /> {t('disable')}</> : <><UserCheck size={14} /> {t('enable')}</>}
+                  </button>
+                  <button
+                    onClick={() => { if (confirm(t('deleteUserConfirm'))) deleteMutation.mutate(user.user_id); }}
                     className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <Trash2 size={15} />
@@ -89,7 +110,7 @@ export default function AdminUsers() {
           </tbody>
         </table>
         {data?.users?.length === 0 && (
-          <div className="text-center py-12 text-slate-400">No users found</div>
+          <div className="text-center py-12 text-slate-400">{t('noUsersFound')}</div>
         )}
       </div>
     </div>

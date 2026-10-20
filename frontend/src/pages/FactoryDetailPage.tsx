@@ -5,8 +5,10 @@ import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import ProductCard, { Product } from '../components/ProductCard';
 import { PageLoader } from '../components/LoadingSpinner';
+import { useTranslation } from 'react-i18next';
 
 export default function FactoryDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
 
@@ -16,18 +18,27 @@ export default function FactoryDetailPage() {
   });
 
   if (isLoading) return <PageLoader />;
+<<<<<<< HEAD
   if (!data?.factory)
     return <div className="text-center py-16 text-slate-500">{t('factory_not_found')}</div>;
+=======
+  if (!data?.factory) return <div className="text-center py-16 text-slate-500">{t('factoryNotFound')}</div>;
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
 
   const { factory } = data;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<<<<<<< HEAD
       <Link
         to="/factories"
         className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 mb-6"
       >
         <ArrowLeft size={14} /> {t('factory_back')}
+=======
+      <Link to="/factories" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 mb-6">
+        <ArrowLeft size={14} /> {t('backToFactories')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
       </Link>
 
       {/* Factory Header */}
@@ -61,12 +72,18 @@ export default function FactoryDetailPage() {
       </div>
 
       {/* Products */}
+<<<<<<< HEAD
       <h2 className="text-xl font-bold text-slate-900 mb-6">
         {t('factory_products_from', { name: factory.factory_name })}
       </h2>
 
       {factory.products?.length === 0 ? (
         <div className="text-center py-12 text-slate-500">{t('factory_no_products')}</div>
+=======
+      <h2 className="text-xl font-bold text-slate-900 mb-6">{t('productsFromFactory', { name: factory.factory_name })}</h2>
+      {factory.products?.length === 0 ? (
+        <div className="text-center py-12 text-slate-500">{t('noProductsAvailable')}</div>
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {factory.products?.map((product: Product) => (

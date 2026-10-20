@@ -8,6 +8,8 @@ import DashboardLayout from './layouts/DashboardLayout';
 // Public Pages
 import HomePage from './pages/HomePage';
 import BuyerLandingPage from './pages/BuyerLandingPage';
+import AboutPage from './pages/AboutPage';
+import ResourcesPage from './pages/ResourcesPage';
 import ProductsPage from './pages/ProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import FactoriesPage from './pages/FactoriesPage';
@@ -32,6 +34,7 @@ import FactoryDashboard from './pages/factory/FactoryDashboard';
 import FactoryProducts from './pages/factory/FactoryProducts';
 import FactoryOrders from './pages/factory/FactoryOrders';
 import FactoryReports from './pages/factory/FactoryReports';
+import FactoryApprovalPage from './pages/factory/FactoryApprovalPage';
 
 // Admin Dashboard
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -62,12 +65,23 @@ const ProtectedRoute = ({
   return <>{children}</>;
 };
 
+const ApprovedFactoryRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, user } = useAuthStore();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'FACTORY') return <Navigate to="/" replace />;
+  if (user.approval_status !== 'APPROVED')
+    return <Navigate to="/factory/pending" replace />;
+  return <>{children}</>;
+};
+
 export default function App() {
   return (
     <Routes>
       {/* Public routes */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/resources" element={<ResourcesPage />} />
         <Route
           path="/buyer"
           element={
@@ -132,6 +146,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/factory/pending"
+          element={
+            <ProtectedRoute roles={['FACTORY']}>
+              <FactoryApprovalPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Shared */}
         <Route
@@ -156,9 +178,9 @@ export default function App() {
       <Route
         path="/factory"
         element={
-          <ProtectedRoute roles={['FACTORY']}>
+          <ApprovedFactoryRoute>
             <DashboardLayout role="FACTORY" />
-          </ProtectedRoute>
+          </ApprovedFactoryRoute>
         }
       >
         <Route index element={<FactoryDashboard />} />

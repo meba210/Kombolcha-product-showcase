@@ -20,6 +20,63 @@ const validateChapaKeys = (res: Response) => {
   return false;
 };
 
+const COMMISSION_RATE = 0.10; // 10% platform commission on factory products
+
+/**
+ * Builds per-seller settlement rows from the order items.
+ * - Factory products: 10% commission deducted, factory receives 90%.
+ * - Admin products:   no commission (platform owns these directly), net = gross.
+ */
+const buildSettlements = async (
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  orderId: number,
+  items: CartSnapshotItem[],
+) => {
+  // Fetch product ownership info for all items in one query
+  const products = await tx.product.findMany({
+    where: { product_id: { in: items.map((i) => i.product_id) } },
+    select: { product_id: true, factory_id: true, created_by_admin: true },
+  });
+
+  const productMap = new Map(products.map((p) => [p.product_id, p]));
+
+  // Group item subtotals by seller key: "factory:<id>" or "admin"
+  const sellerTotals = new Map<string, { factory_id: number | null; gross: number }>();
+
+  for (const item of items) {
+    const product = productMap.get(item.product_id);
+    if (!product) continue;
+
+    const key = product.factory_id ? `factory:${product.factory_id}` : 'admin';
+    const existing = sellerTotals.get(key);
+    if (existing) {
+      existing.gross += item.subtotal;
+    } else {
+      sellerTotals.set(key, { factory_id: product.factory_id ?? null, gross: item.subtotal });
+    }
+  }
+
+  // Create one settlement row per seller
+  for (const [, seller] of sellerTotals) {
+    const isFactory = seller.factory_id !== null;
+    const rate = isFactory ? COMMISSION_RATE : 0;
+    const commission = seller.gross * rate;
+    const net = seller.gross - commission;
+
+    await tx.settlement.create({
+      data: {
+        order_id: orderId,
+        factory_id: seller.factory_id,
+        gross_amount: seller.gross,
+        commission_rate: rate,
+        commission_amount: commission,
+        net_amount: net,
+        settlement_status: 'PENDING',
+      },
+    });
+  }
+};
+
 /** Commits the order only after Chapa has confirmed the transaction. */
 const completePayment = async (txRef: string) => prisma.$transaction(async (tx) => {
   const attempt = await tx.paymentattempt.findUnique({ where: { transaction_reference: txRef } });
@@ -58,6 +115,9 @@ const completePayment = async (txRef: string) => prisma.$transaction(async (tx) 
       } },
     },
   });
+
+  // Build per-seller settlement records for this order
+  await buildSettlements(tx, order.order_id, items);
 
   await tx.paymentattempt.update({ where: { transaction_reference: txRef }, data: { payment_status: 'COMPLETED' } });
 
@@ -161,4 +221,83 @@ export const getAllPayments = async (_req: AuthRequest, res: Response): Promise<
     ]);
     res.json({ success: true, payments, pagination: { total, page: parseInt(page as string), totalPages: Math.ceil(total / parseInt(limit as string)) } });
   } catch (error) { console.error('GetAllPayments error:', error); res.status(500).json({ success: false, message: 'Failed to fetch payments' }); }
+};
+
+/**
+ * GET /api/payments/settlements
+ * Returns all settlement records with factory and order info for the admin dashboard.
+ */
+export const getSettlements = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { page = '1', limit = '50', factory_id, status } = _req.query;
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+    const where: Record<string, unknown> = {};
+    if (factory_id) where.factory_id = parseInt(factory_id as string);
+    if (status) where.settlement_status = status;
+
+    const [settlements, total] = await Promise.all([
+      prisma.settlement.findMany({
+        where,
+        skip,
+        take: parseInt(limit as string),
+        orderBy: { created_at: 'desc' },
+        include: {
+          order: {
+            include: {
+              buyer: { include: { user: { select: { full_name: true, email: true } } } },
+              payment: { select: { transaction_reference: true, payment_status: true, payment_date: true } },
+            },
+          },
+          factory: { select: { factory_name: true, location: true } },
+        },
+      }),
+      prisma.settlement.count({ where }),
+    ]);
+
+    // Summary totals for display
+    const summary = await prisma.settlement.aggregate({
+      _sum: { gross_amount: true, commission_amount: true, net_amount: true },
+      where: status ? { settlement_status: status as string } : {},
+    });
+
+    res.json({
+      success: true,
+      settlements,
+      summary: {
+        totalGross: Number(summary._sum.gross_amount) || 0,
+        totalCommission: Number(summary._sum.commission_amount) || 0,
+        totalNet: Number(summary._sum.net_amount) || 0,
+      },
+      pagination: {
+        total,
+        page: parseInt(page as string),
+        totalPages: Math.ceil(total / parseInt(limit as string)),
+      },
+    });
+  } catch (error) {
+    console.error('GetSettlements error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch settlements' });
+  }
+};
+
+/**
+ * GET /api/payments/orders/:orderId/settlements
+ * Returns the seller breakdown for a specific order.
+ */
+export const getOrderSettlements = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { orderId } = req.params;
+    const settlements = await prisma.settlement.findMany({
+      where: { order_id: parseInt(orderId) },
+      include: {
+        factory: { select: { factory_name: true, location: true } },
+      },
+      orderBy: { factory_id: 'asc' },
+    });
+    res.json({ success: true, settlements });
+  } catch (error) {
+    console.error('GetOrderSettlements error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch order settlements' });
+  }
 };

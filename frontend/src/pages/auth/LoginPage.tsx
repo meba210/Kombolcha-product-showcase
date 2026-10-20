@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Factory, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
 
@@ -63,7 +64,8 @@ export default function LoginPage() {
       setAuth(user, token);
       toast.success(`Welcome back, ${user.full_name.split(' ')[0]}!`);
       if (user.role === 'ADMIN') navigate('/admin');
-      else if (user.role === 'FACTORY') navigate('/factory');
+      else if (user.role === 'FACTORY')
+        navigate(user.approval_status === 'APPROVED' ? '/factory' : '/factory/pending');
       else navigate('/buyer');
     } catch (err: any) {
       const status = err?.response?.status;
@@ -101,17 +103,26 @@ export default function LoginPage() {
           <div className="w-14 h-14 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Factory size={28} className="text-white" />
           </div>
+<<<<<<< HEAD
           <h1 className="text-2xl font-bold text-smoke-900">{t('login_title')}</h1>
           <p className="text-smoke-600 mt-1">{t('login_subtitle')}</p>
+=======
+          <h1 className="text-2xl font-bold text-smoke-900">{t('welcomeBackTitle')}</h1>
+          <p className="text-smoke-600 mt-1">{t('signInToAccount')}</p>
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
         </div>
 
         <div className="card p-8">
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* Email */}
             <div>
+<<<<<<< HEAD
               <label className="block text-sm font-medium text-smoke-700 mb-1.5">
                 {t('login_email_label')}
               </label>
+=======
+              <label className="block text-sm font-medium text-smoke-700 mb-1.5">{t('emailLabel')}</label>
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
               <input
                 type="email"
                 value={email}
@@ -128,9 +139,13 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
+<<<<<<< HEAD
               <label className="block text-sm font-medium text-smoke-700 mb-1.5">
                 {t('login_password_label')}
               </label>
+=======
+              <label className="block text-sm font-medium text-smoke-700 mb-1.5">{t('passwordLabel')}</label>
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -154,8 +169,17 @@ export default function LoginPage() {
               )}
             </div>
 
+<<<<<<< HEAD
             <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-base">
               {loading ? t('login_submitting') : t('login_submit')}
+=======
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full py-3 text-base"
+            >
+              {loading ? t('signingIn') : t('signIn')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
             </button>
           </form>
 

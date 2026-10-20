@@ -3,8 +3,10 @@ import { useAuthStore } from '../store/authStore';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 import { User, Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const { user, updateUser } = useAuthStore();
   const [form, setForm] = useState({
     full_name: user?.full_name || '',
@@ -19,9 +21,9 @@ export default function ProfilePage() {
     try {
       const res = await api.put('/users/profile', form);
       updateUser({ full_name: res.data.user.full_name });
-      toast.success('Profile updated successfully');
+      toast.success(t('profileUpdated'));
     } catch {
-      toast.error('Failed to update profile');
+      toast.error(t('profileUpdateFailed'));
     } finally {
       setLoading(false);
     }
@@ -33,7 +35,7 @@ export default function ProfilePage() {
         <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center">
           <User size={20} className="text-primary-600" />
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t('myProfile')}</h1>
       </div>
 
       <div className="card p-8">
@@ -45,26 +47,26 @@ export default function ProfilePage() {
           <div>
             <p className="font-bold text-slate-900 text-lg">{user?.full_name}</p>
             <p className="text-slate-500">{user?.email}</p>
-            <span className="badge badge-blue mt-1 capitalize">{user?.role?.toLowerCase()}</span>
+            <span className="badge badge-blue mt-1 capitalize">{user?.role === 'BUYER' ? t('buyerRole') : user?.role === 'FACTORY' ? t('factoryRole') : t('adminRole')}</span>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('fullName')}</label>
             <input
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               className="input-field"
-              placeholder="Your full name"
+              placeholder={t('yourFullName')}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('email')}</label>
             <input value={user?.email || ''} disabled className="input-field bg-slate-50 text-slate-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone Number</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('phoneNumber')}</label>
             <input
               value={form.phone_number}
               onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
@@ -74,18 +76,18 @@ export default function ProfilePage() {
           </div>
           {user?.role === 'BUYER' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Address</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('address')}</label>
               <input
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
                 className="input-field"
-                placeholder="Your address"
+                placeholder={t('yourAddress')}
               />
             </div>
           )}
           <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2 px-6 py-2.5">
             <Save size={16} />
-            {loading ? 'Saving...' : 'Save Changes'}
+            {loading ? t('saving') : t('saveChanges')}
           </button>
         </form>
       </div>

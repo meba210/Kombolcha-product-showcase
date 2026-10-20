@@ -5,8 +5,10 @@ import api from '../../lib/api';
 import toast from 'react-hot-toast';
 import { PageLoader } from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
+import { useTranslation } from 'react-i18next';
 
 export default function AdminProducts() {
+  const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -57,7 +59,7 @@ export default function AdminProducts() {
       });
     },
     onSuccess: () => {
-      toast.success(editId ? 'Product updated' : 'Product created');
+      toast.success(editId ? t('productUpdated') : t('productCreated'));
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setShowModal(false);
       setForm({
@@ -73,14 +75,14 @@ export default function AdminProducts() {
     },
     onError: (err: unknown) => {
       const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'Failed to save');
+      toast.error(error.response?.data?.message || t('failedSave'));
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/products/${id}`),
     onSuccess: () => {
-      toast.success('Product deleted');
+      toast.success(t('productDeleted'));
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     },
   });
@@ -105,7 +107,7 @@ export default function AdminProducts() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-900">
-          Product Management
+          {t('productManagement')}
         </h1>
         <button
           onClick={() => {
@@ -114,7 +116,7 @@ export default function AdminProducts() {
           }}
           className="btn-primary flex items-center gap-2"
         >
-          <Plus size={16} /> Add Product
+          <Plus size={16} /> {t('addProduct')}
         </button>
       </div>
 
@@ -122,10 +124,10 @@ export default function AdminProducts() {
         <div className="card overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50">
             <h2 className="text-lg font-semibold text-slate-900">
-              Admin Products
+              {t('adminProducts')}
             </h2>
             <p className="text-sm text-slate-500 mt-1">
-              Products created via the admin panel.
+              {t('adminProductsDesc')}
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -133,22 +135,22 @@ export default function AdminProducts() {
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
-                    Product
+                    {t('productName')}
                   </th>
                   {/* <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
                     Factory
                   </th> */}
                   <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
-                    Price
+                    {t('price')}
                   </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
-                    Stock
+                    {t('stock')}
                   </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
-                    Status
+                    {t('status')}
                   </th>
                   <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
-                    Actions
+                    {t('actions')}
                   </th>
                 </tr>
               </thead>
@@ -202,7 +204,7 @@ export default function AdminProducts() {
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm('Delete this product?'))
+                            if (confirm(t('deleteProductConfirm')))
                               deleteMutation.mutate(product.product_id);
                           }}
                           className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
@@ -218,7 +220,7 @@ export default function AdminProducts() {
           </div>
           {!adminProducts?.length && (
             <div className="text-center py-10 text-slate-400">
-              No admin-created products yet.
+              {t('noAdminProducts')}
             </div>
           )}
         </div>
@@ -226,10 +228,10 @@ export default function AdminProducts() {
         <div className="card overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50">
             <h2 className="text-lg font-semibold text-slate-900">
-              Factory Products
+              {t('factoryProducts')}
             </h2>
             <p className="text-sm text-slate-500 mt-1">
-              Products created by factory users.
+              {t('factoryProductsDesc')}
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -237,22 +239,22 @@ export default function AdminProducts() {
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
-                    Product
+                    {t('productName')}
                   </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
-                    Factory
+                    {t('factory')}
                   </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
-                    Price
+                    {t('price')}
                   </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
-                    Stock
+                    {t('stock')}
                   </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
-                    Status
+                    {t('status')}
                   </th>
                   <th className="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
-                    Actions
+                    {t('actions')}
                   </th>
                 </tr>
               </thead>
@@ -306,7 +308,7 @@ export default function AdminProducts() {
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm('Delete this product?'))
+                            if (confirm(t('deleteProductConfirm')))
                               deleteMutation.mutate(product.product_id);
                           }}
                           className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
@@ -332,9 +334,7 @@ export default function AdminProducts() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <h2 className="text-lg font-bold">
-                {editId ? 'Edit Product' : 'Add Product'}
-              </h2>
+              <h2 className="text-lg font-bold">{editId ? t('editProduct') : t('addProduct')}</h2>
               <button onClick={() => setShowModal(false)}>
                 <X size={18} />
               </button>
@@ -343,7 +343,7 @@ export default function AdminProducts() {
               {/* {!editId && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Factory
+                    {t('factory')}
                   </label>
                   <select
                     value={form.factory_id}
@@ -353,7 +353,7 @@ export default function AdminProducts() {
                     className="input-field"
                     required
                   >
-                    <option value="">Select factory</option>
+                    <option value="">{t('selectFactory')}</option>
                     {factoriesData?.factories?.map(
                       (f: { factory_id: number; factory_name: string }) => (
                         <option key={f.factory_id} value={f.factory_id}>
@@ -366,7 +366,7 @@ export default function AdminProducts() {
               )} */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Product Name
+                  {t('productName')}
                 </label>
                 <input
                   value={form.product_name}
@@ -379,7 +379,7 @@ export default function AdminProducts() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Description
+                  {t('description')}
                 </label>
                 <textarea
                   value={form.description}
@@ -392,7 +392,7 @@ export default function AdminProducts() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Price (ETB)
+                    {t('price')} (ETB)
                   </label>
                   <input
                     type="number"
@@ -406,7 +406,7 @@ export default function AdminProducts() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                    Stock
+                    {t('stock')}
                   </label>
                   <input
                     type="number"
@@ -420,7 +420,7 @@ export default function AdminProducts() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Category
+                  {t('category')}
                 </label>
                 <select
                   value={form.category_id}
@@ -430,7 +430,7 @@ export default function AdminProducts() {
                   className="input-field"
                   required
                 >
-                  <option value="">Select category</option>
+                  <option value="">{t('selectCategory')}</option>
                   {categoriesData?.categories?.map(
                     (cat: { category_id: number; category_name: string }) => (
                       <option key={cat.category_id} value={cat.category_id}>
@@ -442,7 +442,7 @@ export default function AdminProducts() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Image
+                  {t('productImage')}
                 </label>
                 <input
                   type="file"
@@ -457,7 +457,7 @@ export default function AdminProducts() {
                 onClick={() => setShowModal(false)}
                 className="btn-secondary flex-1"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 onClick={() => saveMutation.mutate()}
@@ -465,10 +465,10 @@ export default function AdminProducts() {
                 className="btn-primary flex-1"
               >
                 {saveMutation.isPending
-                  ? 'Saving...'
+                  ? t('saving')
                   : editId
-                    ? 'Update'
-                    : 'Create'}
+                    ? t('update')
+                    : t('create')}
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { Send, MessageSquare, Image } from 'lucide-react';
 import api from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { PageLoader } from '../components/LoadingSpinner';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
 interface Message {
@@ -28,12 +29,19 @@ interface Conversation {
 }
 
 export default function MessagesPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [searchParams] = useSearchParams();
+  const [inquiryProduct, setInquiryProduct] = useState<{
+  product_id: number;
+  product_name: string;
+  product_image: string;
+} | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(
     searchParams.get('to') ? parseInt(searchParams.get('to')!) : null
   );
   const [newMessage, setNewMessage] = useState('');
+  const [sendAsProductInquiry, setSendAsProductInquiry] = useState(false);
   const productId = searchParams.get('product_id');
   const productName = searchParams.get('product_name')
     ? decodeURIComponent(searchParams.get('product_name')!)
@@ -60,34 +68,69 @@ export default function MessagesPage() {
     refetchInterval: 5000,
   });
 
+
+
+useEffect(() => {
+  const productId = searchParams.get('product_id');
+  const productName = searchParams.get('product_name');
+  const productImage = searchParams.get('product_image');
+
+  if (productId && productName) {
+    setInquiryProduct({
+      product_id: Number(productId),
+      product_name: productName,
+      product_image: productImage || '',
+    });
+  }
+}, [searchParams]);
+
   const sendMutation = useMutation({
-    mutationFn: (payload: { content: string; attachment_url?: string }) =>
+    mutationFn: (payload: {
+      content: string;
+      attachment_url?: string;
+      product_id?: number;
+      product_name?: string;
+      product_image?: string;
+    }) =>
       api.post('/messages', {
         receiver_id: Number(selectedUserId),
         message_content: payload.content,
         attachment_url: payload.attachment_url,
-        product_id: productId,
-        product_name: productName,
-        product_image: productImage,
+        product_id: payload.product_id,
+        product_name: payload.product_name,
+        product_image: payload.product_image,
       }),
-    onMutate: async (payload: { content: string; attachment_url?: string }) => {
+
+    onMutate: async (payload) => {
       await queryClient.cancelQueries({
         queryKey: ['conversation', selectedUserId],
       });
+
       const previousData = queryClient.getQueryData<any>([
         'conversation',
         selectedUserId,
       ]);
+
       const tempMessage = {
         message_id: Date.now() * -1,
         sender_id: user?.user_id,
         receiver_id: selectedUserId,
         message_content: payload.content,
         attachment_url: payload.attachment_url,
+
+       
+        product_id: payload.product_id,
+        product_name: payload.product_name,
+        product_image: payload.product_image,
+
         send_date: new Date().toISOString(),
         message_status: 'SENT',
-        sender: { full_name: user?.full_name ?? '', role: user?.role ?? '' },
+        sender: {
+          full_name: user?.full_name ?? '',
+          role: user?.role ?? '',
+        },
       };
+
       queryClient.setQueryData(
         ['conversation', selectedUserId],
         (old: any) => ({
@@ -95,21 +138,29 @@ export default function MessagesPage() {
           messages: [...(old?.messages || []), tempMessage],
         })
       );
+
       return { previousData };
     },
-    onError: (_err, _content, context: any) => {
+
+    onError: (_err, _payload, context: any) => {
       queryClient.setQueryData(
         ['conversation', selectedUserId],
         context?.previousData
       );
-      toast.error('Failed to send message');
+
+      toast.error(t('failedSendMessage'));
     },
+
     onSettled: () => {
       setNewMessage('');
+
       queryClient.invalidateQueries({
         queryKey: ['conversation', selectedUserId],
       });
-      queryClient.invalidateQueries({ queryKey: ['inbox'] });
+
+      queryClient.invalidateQueries({
+        queryKey: ['inbox'],
+      });
     },
   });
 
@@ -117,11 +168,26 @@ export default function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversationData, selectedUserId]);
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedUserId) return;
-    sendMutation.mutate({ content: newMessage.trim() });
-  };
+ 
+
+ const handleSend = (e: React.FormEvent) => {
+   e.preventDefault();
+
+   if (!newMessage.trim() || !selectedUserId) return;
+
+   sendMutation.mutate({
+     content: newMessage.trim(),
+
+     ...(inquiryProduct && {
+       product_id: inquiryProduct.product_id,
+       product_name: inquiryProduct.product_name,
+       product_image: inquiryProduct.product_image,
+     }),
+   });
+
+   
+   setInquiryProduct(null);
+ };
 
   const handleAttachClick = () => {
     fileInputRef.current?.click();
@@ -142,7 +208,7 @@ export default function MessagesPage() {
       const attachment_url = uploadResponse.data.url;
       sendMutation.mutate({ content: newMessage.trim(), attachment_url });
     } catch {
-      toast.error('Failed to upload image');
+      toast.error(t('failedUploadImage'));
     } finally {
       setIsUploading(false);
       e.target.value = '';
@@ -164,14 +230,14 @@ export default function MessagesPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Messages</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">{t('messagesTitle')}</h1>
 
       <div className="card flex h-[600px] overflow-hidden">
         {/* Inbox sidebar */}
         <div className="w-72 border-r border-slate-100 flex flex-col flex-shrink-0">
           <div className="p-4 border-b border-slate-100">
             <p className="font-semibold text-slate-800 text-sm">
-              Conversations
+              {t('conversations')}
             </p>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -179,7 +245,7 @@ export default function MessagesPage() {
               <PageLoader />
             ) : conversations.length === 0 ? (
               <div className="p-6 text-center text-slate-400 text-sm">
-                No conversations yet
+                {t('noConversations')}
               </div>
             ) : (
               conversations.map((conv) => (
@@ -208,7 +274,7 @@ export default function MessagesPage() {
                         )}
                       </div>
                       <p className="text-xs text-slate-500 truncate capitalize">
-                        {conv.partner.role.toLowerCase()}
+                      {t(conv.partner.role.toLowerCase() === 'factory' ? 'factoryRole' : conv.partner.role.toLowerCase() === 'buyer' ? 'buyerRole' : 'adminRole')}
                       </p>
                       {conv.lastMessage && (
                         <p className="text-xs text-slate-400 truncate mt-0.5">
@@ -235,10 +301,10 @@ export default function MessagesPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-800">
-                      {selectedPartner?.full_name || 'User'}
+                      {selectedPartner?.full_name || t('user')}
                     </p>
                     <p className="text-xs text-slate-500 capitalize">
-                      {selectedPartner?.role?.toLowerCase()}
+                      {selectedPartner?.role && t(selectedPartner.role.toLowerCase() === 'factory' ? 'factoryRole' : selectedPartner.role.toLowerCase() === 'buyer' ? 'buyerRole' : 'adminRole')}
                     </p>
                   </div>
                 </div>
@@ -257,7 +323,7 @@ export default function MessagesPage() {
                     )}
                     <div>
                       <p className="text-slate-800 font-semibold">
-                        Inquiry about
+                        {t('inquiryAbout')}
                       </p>
                       <p className="text-slate-700 truncate max-w-[240px]">
                         {productName}
@@ -273,7 +339,7 @@ export default function MessagesPage() {
                   <PageLoader />
                 ) : messages.length === 0 ? (
                   <div className="text-center text-slate-400 text-sm py-8">
-                    Start the conversation!
+                    {t('startConversation')}
                   </div>
                 ) : (
                   messages.map((msg) => {
@@ -290,22 +356,34 @@ export default function MessagesPage() {
                               : 'bg-slate-100 text-slate-800 rounded-bl-sm'
                           }`}
                         >
+                         
+                          {msg.product_image && (
+                            <img
+                              src={msg.product_image}
+                              alt={msg.product_name || t('products')}
+                              className="w-48 h-32 object-cover rounded-lg mb-2"
+                            />
+                          )}
                           {msg.product_name && (
                             <div className="mb-2 rounded-lg bg-slate-200 px-3 py-2 text-xs text-slate-700">
-                              Inquiry about:{' '}
+                              {t('inquiryAbout')}:{' '}
                               <span className="font-semibold">
                                 {msg.product_name}
                               </span>
                             </div>
                           )}
-                          <p>{msg.message_content}</p>
+
+                          {msg.message_content && <p>{msg.message_content}</p>}
                           {msg.attachment_url && (
-                            <img
-                              src={msg.attachment_url}
-                              alt="Message attachment"
-                              className="mt-2 w-full rounded-xl object-cover"
-                            />
+                            <div className="mt-2">
+                              <img
+                                src={msg.attachment_url}
+                                alt={t('messageAttachment')}
+                                className="max-w-full max-h-64 rounded-xl object-cover"
+                              />
+                            </div>
                           )}
+
                           <p
                             className={`text-xs mt-1 ${isOwn ? 'text-primary-200' : 'text-slate-400'}`}
                           >
@@ -341,13 +419,13 @@ export default function MessagesPage() {
                   className="btn-secondary px-4 flex items-center gap-2"
                 >
                   <Image size={16} />
-                  {isUploading ? 'Uploading...' : 'Image'}
+                  {isUploading ? t('uploading') : t('image')}
                 </button>
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
+                  placeholder={t('typeMessage')}
                   className="input-field flex-1"
                 />
                 <button
@@ -367,10 +445,10 @@ export default function MessagesPage() {
                   className="text-slate-200 mx-auto mb-4"
                 />
                 <p className="text-slate-500 font-medium">
-                  Select a conversation
+                  {t('selectConversation')}
                 </p>
                 <p className="text-slate-400 text-sm mt-1">
-                  Choose from your inbox to start chatting
+                  {t('chooseConversation')}
                 </p>
               </div>
             </div>

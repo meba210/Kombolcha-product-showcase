@@ -6,6 +6,7 @@ import { useCartStore } from '../store/cartStore';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 export interface Product {
   product_id: number;
@@ -31,7 +32,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated || user?.role !== 'BUYER') {
+<<<<<<< HEAD
       toast.error(t('card_add_to_cart_login'));
+=======
+      toast.error(t('loginAsBuyer'));
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
       return;
     }
     try {
@@ -40,10 +45,14 @@ export default function ProductCard({ product }: ProductCardProps) {
         quantity: 1,
       });
       setCart(res.data.cart);
+<<<<<<< HEAD
       toast.success(t('card_added'));
+=======
+      toast.success(t('addedToCart'));
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error.response?.data?.message || 'Failed to add to cart');
+      toast.error(error.response?.data?.message || t('failedAddToCart'));
     }
   };
 
@@ -68,12 +77,26 @@ export default function ProductCard({ product }: ProductCardProps) {
               <div className="w-16 h-16 mx-auto mb-2 bg-slate-200 rounded-full flex items-center justify-center">
                 <span className="text-2xl">📦</span>
               </div>
+<<<<<<< HEAD
+=======
+              <p className="text-xs text-slate-400">{t('noImage')}</p>
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
             </div>
           </div>
         )}
         <div className="absolute top-2 right-2">
+<<<<<<< HEAD
           <span className={clsx('badge text-xs', isAvailable ? 'badge-green' : 'badge-red')}>
             {isAvailable ? t('card_in_stock') : t('card_out_of_stock')}
+=======
+          <span
+            className={clsx(
+              'badge text-xs',
+              isAvailable ? 'badge-green' : 'badge-red'
+            )}
+          >
+            {t(isAvailable ? 'inStock' : 'outOfStock')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
           </span>
         </div>
       </div>
@@ -87,7 +110,11 @@ export default function ProductCard({ product }: ProductCardProps) {
           {product.product_name}
         </h3>
         <p className="text-xs text-slate-500 mb-3 truncate">
+<<<<<<< HEAD
           {product.factory?.factory_name || t('card_no_factory')}
+=======
+          {product.factory?.factory_name || t('noFactory')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
         </p>
 
         <div className="flex items-center justify-between">

@@ -1,10 +1,19 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Factory, Mail, Phone, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export default function Footer() {
+<<<<<<< HEAD
   const { t } = useTranslation();
 
+=======
+  const { pathname } = useLocation();
+  const { t } = useTranslation();
+
+  // The homepage has its own full footer section built in — skip the shared one
+  if (pathname === '/') return null;
+
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
   return (
     <footer className="bg-slate-900 text-slate-300 mt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -17,16 +26,25 @@ export default function Footer() {
               </div>
               <div>
                 <span className="font-bold text-white text-lg block leading-tight">{t('platformName')}</span>
+<<<<<<< HEAD
                 <span className="text-xs text-slate-400">{t('footer_tagline')}</span>
               </div>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
               {t('footer_desc')}
+=======
+                <span className="text-xs text-slate-400">{t('factoryShowcase')}</span>
+              </div>
+            </div>
+            <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
+              {t('footerDescription')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
+<<<<<<< HEAD
             <h3 className="text-white font-semibold mb-4 text-sm">{t('footer_quick_links')}</h3>
             <ul className="space-y-2">
               {[
@@ -34,6 +52,15 @@ export default function Footer() {
                 { to: '/factories', label: t('footer_our_factories') },
                 { to: '/register', label: t('register') },
                 { to: '/login', label: t('login') },
+=======
+            <h3 className="text-white font-semibold mb-4 text-sm">{t('quickLinks')}</h3>
+            <ul className="space-y-2">
+              {[
+                { to: '/products',  label: t('browseProducts') },
+                { to: '/factories', label: t('ourFactories')   },
+                { to: '/register',  label: t('register')       },
+                { to: '/login',     label: t('login')          },
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
               ].map((link) => (
                 <li key={link.to}>
                   <Link to={link.to} className="text-sm text-slate-400 hover:text-white transition-colors">
@@ -46,11 +73,15 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
+<<<<<<< HEAD
             <h3 className="text-white font-semibold mb-4 text-sm">{t('footer_contact')}</h3>
+=======
+            <h3 className="text-white font-semibold mb-4 text-sm">{t('contact')}</h3>
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-sm text-slate-400">
                 <MapPin size={14} className="text-primary-400 flex-shrink-0" />
-                Kombolcha, Amhara Region, Ethiopia
+                {t('regionAddress')}
               </li>
               <li className="flex items-center gap-2 text-sm text-slate-400">
                 <Mail size={14} className="text-primary-400 flex-shrink-0" />
@@ -66,9 +97,15 @@ export default function Footer() {
 
         <div className="border-t border-slate-800 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-500">
+<<<<<<< HEAD
             © {new Date().getFullYear()} {t('platformName')}.
           </p>
           <p className="text-xs text-slate-500">{t('footer_built_with')}</p>
+=======
+            {t('copyright', { year: new Date().getFullYear() })}
+          </p>
+          <p className="text-xs text-slate-500">{t('madeWithCare')}</p>
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
         </div>
       </div>
     </footer>

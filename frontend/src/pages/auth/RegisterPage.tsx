@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
+import FactoryLocationPicker from '../../components/FactoryLocationPicker';
+import { useTranslation } from 'react-i18next';
 
 type Role = 'BUYER' | 'FACTORY';
 
@@ -31,9 +33,22 @@ interface FormErrors {
 export default function RegisterPage() {
   const { t } = useTranslation();
   const [role, setRole] = useState<Role>('BUYER');
+<<<<<<< HEAD
   const [form, setForm] = useState<FormState>({
     full_name: '', email: '', password: '',
     phone_number: '', address: '', factory_name: '', location: '',
+=======
+  const [form, setForm] = useState({
+    full_name: '',
+    email: '',
+    password: '',
+    phone_number: '',
+    address: '',
+    factory_name: '',
+    location: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -87,17 +102,37 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const payload = {
+<<<<<<< HEAD
         full_name: form.full_name.trim(), email: form.email.trim(), password: form.password,
         phone_number: form.phone_number.trim() || undefined, role,
         address: role === 'BUYER' ? form.address.trim() || undefined : undefined,
         factory_name: role === 'FACTORY' ? form.factory_name.trim() || undefined : undefined,
         location: role === 'FACTORY' ? form.location.trim() || undefined : undefined,
+=======
+        full_name: form.full_name,
+        email: form.email,
+        password: form.password,
+        phone_number: form.phone_number || undefined,
+        latitude:form.latitude || undefined,
+        longitude:form.longitude || undefined,
+        role,
+        address: role === 'BUYER' ? form.address || undefined : undefined,
+        factory_name:
+          role === 'FACTORY' ? form.factory_name || undefined : undefined,
+        location: role === 'FACTORY' ? form.location || undefined : undefined,
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
       };
       const response = await api.post('/auth/register', payload);
       const { token, user } = response.data;
       setAuth(user, token);
+<<<<<<< HEAD
       toast.success(t('register_success'));
       if (role === 'FACTORY') navigate('/factory');
+=======
+      toast.success(t('registrationSuccessful'));
+
+      if (role === 'FACTORY') navigate('/factory/pending');
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
       else navigate('/buyer');
     } catch (error: any) {
       const serverErrors = error?.response?.data?.errors;
@@ -131,8 +166,15 @@ export default function RegisterPage() {
           <div className="w-14 h-14 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Factory size={28} className="text-white" />
           </div>
+<<<<<<< HEAD
           <h1 className="text-2xl font-bold text-smoke-900">{t('register_title')}</h1>
           <p className="text-smoke-600 mt-1">{t('register_subtitle')}</p>
+=======
+          <h1 className="text-2xl font-bold text-smoke-900">{t('createAccount')}</h1>
+          <p className="text-smoke-600 mt-1">
+            {t('joinKombolcha')}
+          </p>
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
         </div>
 
         <div className="card p-8">
@@ -149,7 +191,11 @@ export default function RegisterPage() {
                     : 'bg-smoke-50 text-smoke-700 border-smoke-200 hover:border-primary-300'
                 }`}
               >
+<<<<<<< HEAD
                 {r === 'BUYER' ? t('register_role_buyer') : t('register_role_factory')}
+=======
+                {r === 'BUYER' ? `🛒 ${t('buyerRole')}` : `🏭 ${t('factoryRole')}`}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
               </button>
             ))}
           </div>
@@ -159,7 +205,11 @@ export default function RegisterPage() {
               {/* Full Name */}
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-smoke-700 mb-1.5">
+<<<<<<< HEAD
                   {t('register_fullname_label')} <span className="text-red-500">*</span>
+=======
+                  {t('fullName')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
                 </label>
                 <input
                   name="full_name" value={form.full_name} onChange={handleChange}
@@ -173,7 +223,11 @@ export default function RegisterPage() {
               {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-smoke-700 mb-1.5">
+<<<<<<< HEAD
                   {t('register_email_label')} <span className="text-red-500">*</span>
+=======
+                  {t('email')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
                 </label>
                 <input
                   name="email" type="email" value={form.email} onChange={handleChange}
@@ -187,7 +241,11 @@ export default function RegisterPage() {
               {/* Phone */}
               <div>
                 <label className="block text-sm font-medium text-smoke-700 mb-1.5">
+<<<<<<< HEAD
                   {t('register_phone_label')}
+=======
+                  {t('phoneNumber')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
                 </label>
                 <input
                   name="phone_number" value={form.phone_number} onChange={handleChange}
@@ -201,6 +259,7 @@ export default function RegisterPage() {
               {/* Password */}
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-smoke-700 mb-1.5">
+<<<<<<< HEAD
                   {t('register_password_label')} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -210,6 +269,20 @@ export default function RegisterPage() {
                     onBlur={() => handleBlur('password')}
                     placeholder={t('register_password_placeholder')}
                     className={`${fieldClass('password')} pr-10`} autoComplete="new-password"
+=======
+                  {t('passwordLabel')}
+                </label>
+                <div className="relative">
+                  <input
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={handleChange}
+                    required
+                    minLength={6}
+                    placeholder={t('minPassword')}
+                    className="input-field pr-10"
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-smoke-400 hover:text-smoke-600">
@@ -226,7 +299,11 @@ export default function RegisterPage() {
               {role === 'BUYER' && (
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-smoke-700 mb-1.5">
+<<<<<<< HEAD
                     {t('register_address_label')}
+=======
+                    {t('address')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
                   </label>
                   <input
                     name="address" value={form.address} onChange={handleChange}
@@ -243,7 +320,11 @@ export default function RegisterPage() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-smoke-700 mb-1.5">
+<<<<<<< HEAD
                       {t('register_factory_name_label')} <span className="text-red-500">*</span>
+=======
+                      {t('factoryName')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
                     </label>
                     <input
                       name="factory_name" value={form.factory_name} onChange={handleChange}
@@ -255,6 +336,7 @@ export default function RegisterPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-smoke-700 mb-1.5">
+<<<<<<< HEAD
                       {t('register_location_label')}
                     </label>
                     <input
@@ -262,6 +344,22 @@ export default function RegisterPage() {
                       onBlur={() => handleBlur('location')}
                       placeholder={t('register_location_placeholder')}
                       className={fieldClass('location')}
+=======
+                      {t('factoryLocation')}
+                    </label>
+
+                    <FactoryLocationPicker
+                      latitude={form.latitude}
+                      longitude={form.longitude}
+                      onLocationSelect={(latitude, longitude, address) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          location: address,
+                          latitude,
+                          longitude,
+                        }));
+                      }}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
                     />
                     <Err field="location" />
                   </div>
@@ -275,15 +373,33 @@ export default function RegisterPage() {
               </div>
             )}
 
+<<<<<<< HEAD
             <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-base mt-2">
               {loading ? t('register_submitting') : t('register_submit')}
+=======
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full py-3 text-base mt-2"
+            >
+              {loading ? t('creatingAccount') : t('createAccount')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
             </button>
           </form>
 
           <p className="text-center text-sm text-smoke-600 mt-6">
+<<<<<<< HEAD
             {t('register_have_account')}{' '}
             <Link to="/login" className="text-primary-600 font-medium hover:text-primary-700">
               {t('register_login_link')}
+=======
+            {t('alreadyHaveAccount')}{' '}
+            <Link
+              to="/login"
+              className="text-primary-600 font-medium hover:text-primary-700"
+            >
+              {t('signInLink')}
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
             </Link>
           </p>
         </div>

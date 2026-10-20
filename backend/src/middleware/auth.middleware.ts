@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import prisma from '../lib/prisma';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -28,8 +29,16 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
       role: string;
       email: string;
     };
-    req.user = decoded;
-    next();
+    prisma.user.findUnique({ where: { user_id: decoded.user_id }, select: { account_status: true } })
+      .then((user) => {
+        if (!user || user.account_status === 'DISABLED') {
+          res.status(403).json({ success: false, message: 'This account has been disabled.' });
+          return;
+        }
+        req.user = decoded;
+        next();
+      })
+      .catch(next);
   } catch {
     res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }

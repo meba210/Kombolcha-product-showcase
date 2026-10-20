@@ -8,7 +8,18 @@ import prisma from '../lib/prisma';
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { full_name, email, password, phone_number, role, address, factory_name, location } = req.body;
+    const {
+      full_name,
+      email,
+      password,
+      phone_number,
+      role,
+      address,
+      factory_name,
+      location,
+      latitude,
+      longitude,
+    } = req.body;
 
     // Check if email already exists
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -40,6 +51,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
           user_id: user.user_id,
           factory_name: factory_name || full_name,
           location: location || 'Kombolcha',
+          latitude: latitude ? Number(latitude) : null,
+          longitude: longitude ? Number(longitude) : null,
           approval_status: 'PENDING',
         },
       });
@@ -64,6 +77,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         full_name: user.full_name,
         email: user.email,
         role: user.role,
+        ...(role === 'FACTORY' ? { approval_status: 'PENDING' } : {}),
       },
     });
   } catch (error) {
@@ -82,6 +96,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return;
+    }
+    if (user.account_status === 'DISABLED') {
+      res.status(403).json({ success: false, message: 'This account has been disabled. Please contact an administrator.' });
       return;
     }
 

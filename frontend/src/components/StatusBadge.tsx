@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   PENDING: { label: 'Pending', className: 'badge-yellow' },
@@ -18,6 +19,8 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   READ: { label: 'Read', className: 'badge-gray' },
   SETTLED: { label: 'Settled', className: 'badge-green' },
   UNSETTLED: { label: 'Unsettled', className: 'badge-yellow' },
+  PAID: { label: 'Paid', className: 'badge-green' },
+  CALCULATED: { label: 'Calculated', className: 'badge-blue' },
 };
 
 interface StatusBadgeProps {
@@ -26,10 +29,11 @@ interface StatusBadgeProps {
 }
 
 export default function StatusBadge({ status, className }: StatusBadgeProps) {
+  const { t } = useTranslation();
   const config = statusConfig[status] || { label: status, className: 'badge-gray' };
   return (
     <span className={clsx('badge', config.className, className)}>
-      {config.label}
+      {t(status.toLowerCase(), { defaultValue: config.label })}
     </span>
   );
 }

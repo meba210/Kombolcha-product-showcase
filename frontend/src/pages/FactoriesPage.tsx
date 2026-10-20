@@ -4,10 +4,14 @@ import { MapPin, Package, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { PageLoader } from '../components/LoadingSpinner';
+import { useTranslation } from 'react-i18next';
 
 export default function FactoriesPage() {
   const { t } = useTranslation();
+<<<<<<< HEAD
 
+=======
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
   const { data, isLoading } = useQuery({
     queryKey: ['factories'],
     queryFn: () => api.get('/factories').then((r) => r.data),
@@ -16,8 +20,13 @@ export default function FactoriesPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
+<<<<<<< HEAD
         <h1 className="text-3xl font-bold text-slate-900">{t('factories_title')}</h1>
         <p className="text-slate-500 mt-1">{t('factories_subtitle')}</p>
+=======
+        <h1 className="text-3xl font-bold text-slate-900">{t('ourFactories')}</h1>
+        <p className="text-slate-500 mt-1">{t('discoverPartners')}</p>
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
       </div>
 
       {isLoading ? (
@@ -46,10 +55,17 @@ export default function FactoriesPage() {
               </div>
               <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-4">
                 <Package size={14} />
+<<<<<<< HEAD
                 <span>{t('factories_products_count', { count: factory._count.products })}</span>
               </div>
               <div className="flex items-center text-primary-600 text-sm font-medium">
                 {t('factories_view_products')} <ArrowRight size={14} className="ml-1" />
+=======
+                <span>{t('productsCount', { count: factory._count.products })}</span>
+              </div>
+              <div className="flex items-center text-primary-600 text-sm font-medium">
+                {t('viewProducts')} <ArrowRight size={14} className="ml-1" />
+>>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
               </div>
             </Link>
           ))}

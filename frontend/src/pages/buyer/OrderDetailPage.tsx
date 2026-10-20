@@ -4,8 +4,10 @@ import { ArrowLeft } from 'lucide-react';
 import api from '../../lib/api';
 import { PageLoader } from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
+import { useTranslation } from 'react-i18next';
 
 export default function OrderDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
 
   const { data, isLoading } = useQuery({
@@ -16,7 +18,7 @@ export default function OrderDetailPage() {
   if (isLoading) return <PageLoader />;
   if (!data?.order)
     return (
-      <div className="text-center py-16 text-slate-500">Order not found</div>
+      <div className="text-center py-16 text-slate-500">{t('orderNotFound')}</div>
     );
 
   const { order } = data;
@@ -27,19 +29,19 @@ export default function OrderDetailPage() {
         to="/orders"
         className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 mb-6"
       >
-        <ArrowLeft size={14} /> Back to Orders
+        <ArrowLeft size={14} /> {t('backToOrders')}
       </Link>
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-900">
-          Order #{order.order_id}
+          {t('orderNumber', { id: order.order_id })}
         </h1>
         <StatusBadge status={order.order_status} />
       </div>
 
       {/* Order Items */}
       <div className="card p-6 mb-6">
-        <h2 className="font-semibold text-slate-800 mb-4">Items</h2>
+        <h2 className="font-semibold text-slate-800 mb-4">{t('items')}</h2>
         <div className="space-y-4">
           {order.orderitem.map(
             (item: {
@@ -50,7 +52,7 @@ export default function OrderDetailPage() {
               product: {
                 product_name: string;
                 image: string | null;
-                factory: { factory_name: string };
+                factory: { factory_name: string } | null;
               };
             }) => (
               <div key={item.order_item_id} className="flex items-center gap-4">
@@ -67,18 +69,22 @@ export default function OrderDetailPage() {
                     </div>
                   )}
                 </div>
+
                 <div className="flex-1">
                   <p className="font-medium text-slate-800">
                     {item.product.product_name}
                   </p>
+
                   <p className="text-sm text-slate-500">
-                    {item.product.factory.factory_name}
+                    {item.product.factory?.factory_name || t('platformProduct')}
                   </p>
+
                   <p className="text-sm text-slate-500">
-                    Qty: {item.quantity} × ETB{' '}
+                    {t('qty')}: {item.quantity} × ETB{' '}
                     {Number(item.price).toLocaleString()}
                   </p>
                 </div>
+
                 <p className="font-semibold text-slate-900">
                   ETB {Number(item.subtotal).toLocaleString()}
                 </p>
@@ -87,7 +93,7 @@ export default function OrderDetailPage() {
           )}
         </div>
         <div className="border-t border-slate-100 mt-4 pt-4 flex justify-between font-bold text-slate-900">
-          <span>Total</span>
+          <span>{t('total')}</span>
           <span>ETB {Number(order.total_amount).toLocaleString()}</span>
         </div>
       </div>
@@ -95,29 +101,29 @@ export default function OrderDetailPage() {
       {/* Payment Info */}
       {order.payment && (
         <div className="card p-6">
-          <h2 className="font-semibold text-slate-800 mb-4">Payment</h2>
+          <h2 className="font-semibold text-slate-800 mb-4">{t('payment')}</h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-slate-500">Status</p>
+              <p className="text-slate-500">{t('status')}</p>
               <StatusBadge
                 status={order.payment.payment_status}
                 className="mt-1"
               />
             </div>
             <div>
-              <p className="text-slate-500">Method</p>
+              <p className="text-slate-500">{t('method')}</p>
               <p className="font-medium text-slate-800 mt-1">
                 {order.payment.payment_method}
               </p>
             </div>
             <div>
-              <p className="text-slate-500">Amount</p>
+              <p className="text-slate-500">{t('amount')}</p>
               <p className="font-medium text-slate-800 mt-1">
                 ETB {Number(order.payment.amount).toLocaleString()}
               </p>
             </div>
             <div>
-              <p className="text-slate-500">Date</p>
+              <p className="text-slate-500">{t('date')}</p>
               <p className="font-medium text-slate-800 mt-1">
                 {new Date(order.payment.payment_date).toLocaleDateString()}
               </p>
