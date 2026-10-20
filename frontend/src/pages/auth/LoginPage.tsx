@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Factory, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -41,16 +43,14 @@ export default function LoginPage() {
           <div className="w-14 h-14 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Factory size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-smoke-900">Welcome back</h1>
-          <p className="text-smoke-600 mt-1">Sign in to your account.</p>
+          <h1 className="text-2xl font-bold text-smoke-900">{t('welcomeBackTitle')}</h1>
+          <p className="text-smoke-600 mt-1">{t('signInToAccount')}</p>
         </div>
 
         <div className="card p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-smoke-700 mb-1.5">{t('emailLabel')}</label>
               <input
                 type="email"
                 value={email}
@@ -62,9 +62,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                Password
-              </label>
+              <label className="block text-sm font-medium text-smoke-700 mb-1.5">{t('passwordLabel')}</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -89,7 +87,7 @@ export default function LoginPage() {
               disabled={loading}
               className="btn-primary w-full py-3 text-base"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? t('signingIn') : t('signIn')}
             </button>
           </form>
 

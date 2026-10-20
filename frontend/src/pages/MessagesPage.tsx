@@ -5,6 +5,7 @@ import { Send, MessageSquare, Image } from 'lucide-react';
 import api from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { PageLoader } from '../components/LoadingSpinner';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
 interface Message {
@@ -28,6 +29,7 @@ interface Conversation {
 }
 
 export default function MessagesPage() {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const [searchParams] = useSearchParams();
   const [inquiryProduct, setInquiryProduct] = useState<{
@@ -146,7 +148,7 @@ useEffect(() => {
         context?.previousData
       );
 
-      toast.error('Failed to send message');
+      toast.error(t('failedSendMessage'));
     },
 
     onSettled: () => {
@@ -206,7 +208,7 @@ useEffect(() => {
       const attachment_url = uploadResponse.data.url;
       sendMutation.mutate({ content: newMessage.trim(), attachment_url });
     } catch {
-      toast.error('Failed to upload image');
+      toast.error(t('failedUploadImage'));
     } finally {
       setIsUploading(false);
       e.target.value = '';
@@ -228,14 +230,14 @@ useEffect(() => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Messages</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">{t('messagesTitle')}</h1>
 
       <div className="card flex h-[600px] overflow-hidden">
         {/* Inbox sidebar */}
         <div className="w-72 border-r border-slate-100 flex flex-col flex-shrink-0">
           <div className="p-4 border-b border-slate-100">
             <p className="font-semibold text-slate-800 text-sm">
-              Conversations
+              {t('conversations')}
             </p>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -243,7 +245,7 @@ useEffect(() => {
               <PageLoader />
             ) : conversations.length === 0 ? (
               <div className="p-6 text-center text-slate-400 text-sm">
-                No conversations yet
+                {t('noConversations')}
               </div>
             ) : (
               conversations.map((conv) => (
@@ -272,7 +274,7 @@ useEffect(() => {
                         )}
                       </div>
                       <p className="text-xs text-slate-500 truncate capitalize">
-                        {conv.partner.role.toLowerCase()}
+                      {t(conv.partner.role.toLowerCase() === 'factory' ? 'factoryRole' : conv.partner.role.toLowerCase() === 'buyer' ? 'buyerRole' : 'adminRole')}
                       </p>
                       {conv.lastMessage && (
                         <p className="text-xs text-slate-400 truncate mt-0.5">
@@ -299,10 +301,10 @@ useEffect(() => {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-800">
-                      {selectedPartner?.full_name || 'User'}
+                      {selectedPartner?.full_name || t('user')}
                     </p>
                     <p className="text-xs text-slate-500 capitalize">
-                      {selectedPartner?.role?.toLowerCase()}
+                      {selectedPartner?.role && t(selectedPartner.role.toLowerCase() === 'factory' ? 'factoryRole' : selectedPartner.role.toLowerCase() === 'buyer' ? 'buyerRole' : 'adminRole')}
                     </p>
                   </div>
                 </div>
@@ -321,7 +323,7 @@ useEffect(() => {
                     )}
                     <div>
                       <p className="text-slate-800 font-semibold">
-                        Inquiry about
+                        {t('inquiryAbout')}
                       </p>
                       <p className="text-slate-700 truncate max-w-[240px]">
                         {productName}
@@ -337,7 +339,7 @@ useEffect(() => {
                   <PageLoader />
                 ) : messages.length === 0 ? (
                   <div className="text-center text-slate-400 text-sm py-8">
-                    Start the conversation!
+                    {t('startConversation')}
                   </div>
                 ) : (
                   messages.map((msg) => {
@@ -358,13 +360,13 @@ useEffect(() => {
                           {msg.product_image && (
                             <img
                               src={msg.product_image}
-                              alt={msg.product_name || 'Product'}
+                              alt={msg.product_name || t('products')}
                               className="w-48 h-32 object-cover rounded-lg mb-2"
                             />
                           )}
                           {msg.product_name && (
                             <div className="mb-2 rounded-lg bg-slate-200 px-3 py-2 text-xs text-slate-700">
-                              Inquiry about:{' '}
+                              {t('inquiryAbout')}:{' '}
                               <span className="font-semibold">
                                 {msg.product_name}
                               </span>
@@ -376,7 +378,7 @@ useEffect(() => {
                             <div className="mt-2">
                               <img
                                 src={msg.attachment_url}
-                                alt="Message attachment"
+                                alt={t('messageAttachment')}
                                 className="max-w-full max-h-64 rounded-xl object-cover"
                               />
                             </div>
@@ -417,13 +419,13 @@ useEffect(() => {
                   className="btn-secondary px-4 flex items-center gap-2"
                 >
                   <Image size={16} />
-                  {isUploading ? 'Uploading...' : 'Image'}
+                  {isUploading ? t('uploading') : t('image')}
                 </button>
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
+                  placeholder={t('typeMessage')}
                   className="input-field flex-1"
                 />
                 <button
@@ -443,10 +445,10 @@ useEffect(() => {
                   className="text-slate-200 mx-auto mb-4"
                 />
                 <p className="text-slate-500 font-medium">
-                  Select a conversation
+                  {t('selectConversation')}
                 </p>
                 <p className="text-slate-400 text-sm mt-1">
-                  Choose from your inbox to start chatting
+                  {t('chooseConversation')}
                 </p>
               </div>
             </div>

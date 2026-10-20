@@ -5,10 +5,12 @@ import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
 import FactoryLocationPicker from '../../components/FactoryLocationPicker';
+import { useTranslation } from 'react-i18next';
 
 type Role = 'BUYER' | 'FACTORY';
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const [role, setRole] = useState<Role>('BUYER');
   const [form, setForm] = useState({
     full_name: '',
@@ -53,7 +55,7 @@ export default function RegisterPage() {
       const { token, user } = response.data;
 
       setAuth(user, token);
-      toast.success('Registration successful!');
+      toast.success(t('registrationSuccessful'));
 
       if (role === 'FACTORY') navigate('/factory/pending');
       else navigate('/buyer');
@@ -72,11 +74,9 @@ export default function RegisterPage() {
           <div className="w-14 h-14 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Factory size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-smoke-900">
-            Create an account
-          </h1>
+          <h1 className="text-2xl font-bold text-smoke-900">{t('createAccount')}</h1>
           <p className="text-smoke-600 mt-1">
-            Join the Kombolcha Showcase in your buyer or factory role.
+            {t('joinKombolcha')}
           </p>
         </div>
 
@@ -93,7 +93,7 @@ export default function RegisterPage() {
                     : 'bg-smoke-50 text-smoke-700 border-smoke-200 hover:border-primary-300'
                 }`}
               >
-                {r === 'BUYER' ? '🛒 Buyer' : '🏭 Factory'}
+                {r === 'BUYER' ? `🛒 ${t('buyerRole')}` : `🏭 ${t('factoryRole')}`}
               </button>
             ))}
           </div>
@@ -102,7 +102,7 @@ export default function RegisterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                  Full Name
+                  {t('fullName')}
                 </label>
                 <input
                   name="full_name"
@@ -116,7 +116,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                  Email
+                  {t('email')}
                 </label>
                 <input
                   name="email"
@@ -131,7 +131,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                  Phone Number
+                  {t('phoneNumber')}
                 </label>
                 <input
                   name="phone_number"
@@ -144,7 +144,7 @@ export default function RegisterPage() {
 
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                  Password
+                  {t('passwordLabel')}
                 </label>
                 <div className="relative">
                   <input
@@ -154,7 +154,7 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     required
                     minLength={6}
-                    placeholder="Min. 6 characters"
+                    placeholder={t('minPassword')}
                     className="input-field pr-10"
                   />
                   <button
@@ -170,7 +170,7 @@ export default function RegisterPage() {
               {role === 'BUYER' && (
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                    Address
+                    {t('address')}
                   </label>
                   <input
                     name="address"
@@ -186,7 +186,7 @@ export default function RegisterPage() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                      Factory Name
+                      {t('factoryName')}
                     </label>
                     <input
                       name="factory_name"
@@ -199,7 +199,7 @@ export default function RegisterPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                      Factory Location
+                      {t('factoryLocation')}
                     </label>
 
                     <FactoryLocationPicker
@@ -231,17 +231,17 @@ export default function RegisterPage() {
               disabled={loading}
               className="btn-primary w-full py-3 text-base mt-2"
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? t('creatingAccount') : t('createAccount')}
             </button>
           </form>
 
           <p className="text-center text-sm text-smoke-600 mt-6">
-            Already have an account?{' '}
+            {t('alreadyHaveAccount')}{' '}
             <Link
               to="/login"
               className="text-primary-600 font-medium hover:text-primary-700"
             >
-              Sign in
+              {t('signInLink')}
             </Link>
           </p>
         </div>

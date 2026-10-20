@@ -3,8 +3,10 @@ import { Sparkles } from 'lucide-react';
 import api from '../../lib/api';
 import ProductCard, { Product } from '../../components/ProductCard';
 import { PageLoader } from '../../components/LoadingSpinner';
+import { useTranslation } from 'react-i18next';
 
 export default function RecommendationsPage() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ['recommendations'],
     queryFn: () => api.get('/recommendations').then((r) => r.data),
@@ -17,8 +19,8 @@ export default function RecommendationsPage() {
           <Sparkles size={20} className="text-accent-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Recommended for You</h1>
-          <p className="text-slate-500 text-sm">AI-powered suggestions based on your activity</p>
+          <h1 className="text-2xl font-bold text-slate-900">{t('recommendedForYou')}</h1>
+          <p className="text-slate-500 text-sm">{t('aiPoweredSuggestions')}</p>
         </div>
       </div>
 
@@ -27,8 +29,8 @@ export default function RecommendationsPage() {
       ) : data?.recommendations?.length === 0 ? (
         <div className="text-center py-16">
           <div className="text-6xl mb-4">🔍</div>
-          <h3 className="text-xl font-semibold text-slate-700 mb-2">No recommendations yet</h3>
-          <p className="text-slate-500">Browse some products to get personalized recommendations</p>
+          <h3 className="text-xl font-semibold text-slate-700 mb-2">{t('noRecommendations')}</h3>
+          <p className="text-slate-500">{t('browseForRecommendations')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

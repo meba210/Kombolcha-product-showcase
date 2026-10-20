@@ -2,8 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { BarChart3, TrendingUp, Package, DollarSign } from 'lucide-react';
 import api from '../../lib/api';
 import { PageLoader } from '../../components/LoadingSpinner';
+import { useTranslation } from 'react-i18next';
 
 export default function FactoryReports() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ['factory-report'],
     queryFn: () => api.get('/reports/factory').then((r) => r.data),
@@ -16,21 +18,21 @@ export default function FactoryReports() {
     <div>
       <div className="flex items-center gap-3 mb-6">
         <BarChart3 size={24} className="text-primary-600" />
-        <h1 className="text-2xl font-bold text-slate-900">Reports & Analytics</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t('reportsAnalytics')}</h1>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
         {[
-          { label: 'Total Products', value: report?.totalProducts || 0, icon: Package, color: 'text-blue-600 bg-blue-50' },
-          { label: 'Total Sales (ETB)', value: Number(report?.totalSales || 0).toLocaleString(), icon: DollarSign, color: 'text-green-600 bg-green-50' },
-          { label: 'Top Products', value: report?.topProducts?.length || 0, icon: TrendingUp, color: 'text-purple-600 bg-purple-50' },
+          { labelKey: 'totalProducts', value: report?.totalProducts || 0, icon: Package, color: 'text-blue-600 bg-blue-50' },
+          { labelKey: 'totalSales', value: Number(report?.totalSales || 0).toLocaleString(), icon: DollarSign, color: 'text-green-600 bg-green-50' },
+          { labelKey: 'topProducts', value: report?.topProducts?.length || 0, icon: TrendingUp, color: 'text-purple-600 bg-purple-50' },
         ].map((stat) => (
-          <div key={stat.label} className="card p-6">
+          <div key={stat.labelKey} className="card p-6">
             <div className="flex items-center gap-3 mb-2">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color}`}>
                 <stat.icon size={20} />
               </div>
-              <p className="text-sm text-slate-500">{stat.label}</p>
+              <p className="text-sm text-slate-500">{t(stat.labelKey)}</p>
             </div>
             <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
           </div>
@@ -38,9 +40,9 @@ export default function FactoryReports() {
       </div>
 
       <div className="card p-6">
-        <h2 className="font-semibold text-slate-800 mb-4">Top Selling Products</h2>
+        <h2 className="font-semibold text-slate-800 mb-4">{t('topSellingProducts')}</h2>
         {report?.topProducts?.length === 0 ? (
-          <p className="text-slate-400 text-sm">No sales data yet</p>
+          <p className="text-slate-400 text-sm">{t('noSalesData')}</p>
         ) : (
           <div className="space-y-3">
             {report?.topProducts?.map((item: {

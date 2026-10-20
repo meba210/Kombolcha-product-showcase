@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
@@ -25,11 +26,12 @@ export default function LoadingSpinner({ size = 'md', className }: LoadingSpinne
 }
 
 export function PageLoader() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-[400px] flex items-center justify-center">
       <div className="text-center">
         <LoadingSpinner size="lg" />
-        <p className="mt-4 text-sm text-slate-500">Loading...</p>
+        <p className="mt-4 text-sm text-slate-500">{t('loading')}</p>
       </div>
     </div>
   );

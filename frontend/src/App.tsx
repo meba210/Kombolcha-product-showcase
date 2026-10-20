@@ -8,6 +8,8 @@ import DashboardLayout from './layouts/DashboardLayout';
 // Public Pages
 import HomePage from './pages/HomePage';
 import BuyerLandingPage from './pages/BuyerLandingPage';
+import AboutPage from './pages/AboutPage';
+import ResourcesPage from './pages/ResourcesPage';
 import ProductsPage from './pages/ProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import FactoriesPage from './pages/FactoriesPage';
@@ -73,6 +75,8 @@ export default function App() {
       {/* Public routes */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/resources" element={<ResourcesPage />} />
         <Route
           path="/buyer"
           element={

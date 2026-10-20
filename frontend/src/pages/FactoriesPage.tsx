@@ -3,8 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { MapPin, Package, ArrowRight } from 'lucide-react';
 import api from '../lib/api';
 import { PageLoader } from '../components/LoadingSpinner';
+import { useTranslation } from 'react-i18next';
 
 export default function FactoriesPage() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ['factories'],
     queryFn: () => api.get('/factories').then((r) => r.data),
@@ -13,8 +15,8 @@ export default function FactoriesPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Our Factories</h1>
-        <p className="text-slate-500 mt-1">Discover Kombolcha's industrial partners</p>
+        <h1 className="text-3xl font-bold text-slate-900">{t('ourFactories')}</h1>
+        <p className="text-slate-500 mt-1">{t('discoverPartners')}</p>
       </div>
 
       {isLoading ? (
@@ -43,10 +45,10 @@ export default function FactoriesPage() {
               </div>
               <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-4">
                 <Package size={14} />
-                <span>{factory._count.products} products</span>
+                <span>{t('productsCount', { count: factory._count.products })}</span>
               </div>
               <div className="flex items-center text-primary-600 text-sm font-medium">
-                View Products <ArrowRight size={14} className="ml-1" />
+                {t('viewProducts')} <ArrowRight size={14} className="ml-1" />
               </div>
             </Link>
           ))}

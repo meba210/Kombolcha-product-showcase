@@ -5,6 +5,7 @@ import api from '../../lib/api';
 import { PageLoader } from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 const ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 const COMMISSION_RATE = 0.10;
@@ -86,6 +87,7 @@ function calcBreakdown(order: Order) {
 // ─── Expanded breakdown panel ─────────────────────────────────────────────────
 
 function OrderBreakdown({ order }: { order: Order }) {
+  const { t } = useTranslation();
   const items = myItems(order);
   const bd = calcBreakdown(order);
   const buyerPaid = Number(order.total_amount);
@@ -95,7 +97,7 @@ function OrderBreakdown({ order }: { order: Order }) {
     <div className="bg-slate-50 border-t border-slate-100 px-6 py-5">
       {/* Products in this order that belong to this factory */}
       <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-        Your Products in This Order
+        {t('yourProductsInOrder')}
       </p>
       <div className="space-y-2 mb-5">
         {items.map((item) => (
@@ -129,12 +131,12 @@ function OrderBreakdown({ order }: { order: Order }) {
 
       {/* Commission calculation */}
       <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-        Revenue Calculation
+        {t('revenueCalculation')}
       </p>
       <div className="bg-white border border-slate-100 rounded-xl overflow-hidden">
         {/* Full buyer payment context */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
-          <span className="text-sm text-slate-500">Buyer paid (entire order)</span>
+          <span className="text-sm text-slate-500">{t('buyerPaidEntireOrder')}</span>
           <span className="text-sm font-semibold text-slate-700">
             ETB {buyerPaid.toLocaleString()}
           </span>
@@ -143,7 +145,7 @@ function OrderBreakdown({ order }: { order: Order }) {
         {otherSellers > 0 && (
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
             <span className="text-sm text-slate-400 italic">
-              Other sellers' portion (not yours)
+              {t('otherSellersPortion')}
             </span>
             <span className="text-sm text-slate-400">
               − ETB {otherSellers.toLocaleString()}
@@ -154,7 +156,7 @@ function OrderBreakdown({ order }: { order: Order }) {
         {/* Gross */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
           <span className="text-sm text-slate-700 font-medium">
-            Your gross (your products only)
+            {t('yourGross')}
           </span>
           <span className="text-sm font-bold text-slate-900">
             ETB {bd.gross.toLocaleString()}
@@ -164,7 +166,7 @@ function OrderBreakdown({ order }: { order: Order }) {
         {/* Commission */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-orange-50">
           <span className="text-sm text-orange-700">
-            Platform commission ({(bd.rate * 100).toFixed(0)}%)
+            {t('platformCommissionRate', { rate: (bd.rate * 100).toFixed(0) })}
           </span>
           <span className="text-sm font-semibold text-orange-700">
             − ETB {bd.commission.toLocaleString()}
@@ -174,7 +176,7 @@ function OrderBreakdown({ order }: { order: Order }) {
         {/* Net */}
         <div className="flex items-center justify-between px-4 py-4 bg-green-50">
           <span className="text-base font-bold text-green-800">
-            You receive
+            {t('youReceive')}
           </span>
           <span className="text-base font-bold text-green-700">
             ETB {bd.net.toLocaleString()}
@@ -187,8 +189,8 @@ function OrderBreakdown({ order }: { order: Order }) {
         <StatusBadge status={bd.status} />
         <span className="text-xs text-slate-400">
           {bd.fromSettlement
-            ? 'Settlement record confirmed'
-            : 'Calculated from order items — settlement record pending'}
+            ? t('settlementRecordConfirmed')
+            : t('settlementRecordPending')}
         </span>
       </div>
     </div>
@@ -198,6 +200,7 @@ function OrderBreakdown({ order }: { order: Order }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function FactoryOrders() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
@@ -214,10 +217,10 @@ export default function FactoryOrders() {
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       api.put(`/orders/${id}/status`, { order_status: status }),
     onSuccess: () => {
-      toast.success('Order status updated');
+      toast.success(t('orderStatusUpdated'));
       queryClient.invalidateQueries({ queryKey: ['factory-orders'] });
     },
-    onError: () => toast.error('Failed to update order'),
+    onError: () => toast.error(t('failedUpdateOrder')),
   });
 
   if (isLoading) return <PageLoader />;
@@ -236,7 +239,7 @@ export default function FactoryOrders() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">My Orders</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{t('myOrdersTitle')}</h1>
           <p className="text-sm text-slate-500 mt-1">
             Orders that contain your products. Click a row to see your revenue split.
           </p>
@@ -246,9 +249,9 @@ export default function FactoryOrders() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="input-field text-sm py-1.5 w-40"
         >
-          <option value="">All statuses</option>
+          <option value="">{t('allStatuses')}</option>
           {ORDER_STATUSES.map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s}>{t(s.toLowerCase())}</option>
           ))}
         </select>
       </div>
@@ -257,19 +260,19 @@ export default function FactoryOrders() {
       {orders.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="card p-4">
-            <p className="text-xs text-slate-500 mb-1">Total Gross (your products)</p>
+            <p className="text-xs text-slate-500 mb-1">{t('totalGross')}</p>
             <p className="text-xl font-bold text-slate-900">
               ETB {totalGross.toLocaleString()}
             </p>
           </div>
           <div className="card p-4 border-orange-100">
-            <p className="text-xs text-orange-600 mb-1">Platform Commission (10%)</p>
+            <p className="text-xs text-orange-600 mb-1">{t('platformCommission')}</p>
             <p className="text-xl font-bold text-orange-600">
               − ETB {totalCommission.toLocaleString()}
             </p>
           </div>
           <div className="card p-4 border-green-100 bg-green-50">
-            <p className="text-xs text-green-700 mb-1">You Receive (net)</p>
+            <p className="text-xs text-green-700 mb-1">{t('youReceiveNet')}</p>
             <p className="text-xl font-bold text-green-700">
               ETB {totalNet.toLocaleString()}
             </p>
@@ -286,7 +289,7 @@ export default function FactoryOrders() {
         </div>
 
         {orders.length === 0 ? (
-          <div className="text-center py-14 text-slate-400">No orders yet.</div>
+          <div className="text-center py-14 text-slate-400">{t('noOrdersYet')}</div>
         ) : (
           <div className="divide-y divide-slate-100">
             {orders.map((order) => {
@@ -352,7 +355,7 @@ export default function FactoryOrders() {
                       {order.payment ? (
                         <StatusBadge status={order.payment.payment_status} />
                       ) : (
-                        <span className="text-xs text-slate-400">No payment</span>
+                        <span className="text-xs text-slate-400">{t('noPayment')}</span>
                       )}
                     </div>
 
@@ -372,7 +375,7 @@ export default function FactoryOrders() {
                         className="input-field text-sm py-1.5 w-32"
                       >
                         {ORDER_STATUSES.map((s) => (
-                          <option key={s} value={s}>{s}</option>
+                          <option key={s} value={s}>{t(s.toLowerCase())}</option>
                         ))}
                       </select>
                     </div>

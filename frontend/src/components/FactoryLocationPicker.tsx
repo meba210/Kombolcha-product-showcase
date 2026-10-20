@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   APIProvider,
   Map,
@@ -80,6 +81,7 @@ function LocationSearch({
     address: string
   ) => void;
 }) {
+  const { t } = useTranslation();
   const places = useMapsLibrary('places');
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -139,7 +141,7 @@ function LocationSearch({
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search your factory or location..."
+          placeholder={t('searchFactoryLocation')}
           className="w-full px-3 py-3.5 bg-white outline-none text-sm text-slate-800 placeholder:text-slate-400"
         />
       </div>
@@ -156,6 +158,7 @@ export default function FactoryLocationPicker({
   longitude,
   onLocationSelect,
 }: Props) {
+  const { t } = useTranslation();
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
   const [position, setPosition] = useState<{
@@ -210,9 +213,9 @@ export default function FactoryLocationPicker({
       // We don't have a reverse-geocoded address yet.
       setAddress('');
 
-      onLocationSelect(lat, lng, 'Selected map location');
+      onLocationSelect(lat, lng, t('selectedMapLocation'));
     },
-    [onLocationSelect]
+    [onLocationSelect, t]
   );
 
   /* -------------------------------------------------------
@@ -227,7 +230,7 @@ export default function FactoryLocationPicker({
     onLocationSelect(
       position.lat,
       position.lng,
-      address || 'Selected map location'
+      address || t('selectedMapLocation')
     );
   };
 
@@ -253,7 +256,7 @@ export default function FactoryLocationPicker({
             <MapController position={position} onMapClick={handleMapClick} />
 
             {position && (
-              <AdvancedMarker position={position} title="Factory location">
+              <AdvancedMarker position={position} title={t('factoryLocation')}>
                 <div className="w-11 h-11 rounded-full bg-[#7f4d33] border-2 border-white shadow-lg flex items-center justify-center">
                   🏭
                 </div>
@@ -276,7 +279,7 @@ export default function FactoryLocationPicker({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-slate-800">
-                  Selected Factory Location
+                  {t('selectedFactoryLocation')}
                 </p>
 
                 {address && (
@@ -287,14 +290,14 @@ export default function FactoryLocationPicker({
               {confirmed && (
                 <div className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1.5 rounded-full">
                   <span>✓</span>
-                  Confirmed
+                  {t('confirmed')}
                 </div>
               )}
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-3">
               <div>
-                <p className="text-xs text-slate-500">Latitude</p>
+                <p className="text-xs text-slate-500">{t('latitude')}</p>
 
                 <p className="text-sm font-medium text-slate-800">
                   {position.lat.toFixed(6)}
@@ -302,7 +305,7 @@ export default function FactoryLocationPicker({
               </div>
 
               <div>
-                <p className="text-xs text-slate-500">Longitude</p>
+                <p className="text-xs text-slate-500">{t('longitude')}</p>
 
                 <p className="text-sm font-medium text-slate-800">
                   {position.lng.toFixed(6)}
@@ -322,7 +325,7 @@ export default function FactoryLocationPicker({
             onClick={handleConfirm}
             className="w-full btn-primary py-3"
           >
-            Confirm This Location
+            {t('confirmLocation')}
           </button>
         )}
 
@@ -335,15 +338,14 @@ export default function FactoryLocationPicker({
             <span className="text-base">✓</span>
 
             <span>
-              Factory location confirmed. You can continue with registration.
+              {t('locationConfirmed')}
             </span>
           </div>
         )}
 
         {!position && (
           <p className="text-xs text-slate-500">
-            Search for your factory using the search box above, or click
-            directly on the map to choose the exact location.
+            {t('factoryLocationHelp')}
           </p>
         )}
       </div>

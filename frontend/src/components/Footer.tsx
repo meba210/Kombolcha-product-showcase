@@ -1,8 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Factory, Mail, Phone, MapPin } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function Footer() {
   const { pathname } = useLocation();
+  const { t } = useTranslation();
 
   // The homepage has its own full footer section built in — skip the shared one
   if (pathname === '/') return null;
@@ -18,25 +20,24 @@ export default function Footer() {
                 <Factory size={20} className="text-white" />
               </div>
               <div>
-                <span className="font-bold text-white text-lg block leading-tight">Kombolcha Showcase</span>
-                <span className="text-xs text-slate-400">Factory Products Marketplace</span>
+                <span className="font-bold text-white text-lg block leading-tight">{t('platformName')}</span>
+                <span className="text-xs text-slate-400">{t('factoryShowcase')}</span>
               </div>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
-              Connecting Kombolcha's industrial factories with buyers through a trusted digital marketplace.
-              Discover textiles, steel, food products, and construction materials.
+              {t('footerDescription')}
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-white font-semibold mb-4 text-sm">Quick Links</h3>
+            <h3 className="text-white font-semibold mb-4 text-sm">{t('quickLinks')}</h3>
             <ul className="space-y-2">
               {[
-                { to: '/products',  label: 'Browse Products' },
-                { to: '/factories', label: 'Our Factories'   },
-                { to: '/register',  label: 'Register'        },
-                { to: '/login',     label: 'Login'           },
+                { to: '/products',  label: t('browseProducts') },
+                { to: '/factories', label: t('ourFactories')   },
+                { to: '/register',  label: t('register')       },
+                { to: '/login',     label: t('login')          },
               ].map((link) => (
                 <li key={link.to}>
                   <Link to={link.to} className="text-sm text-slate-400 hover:text-white transition-colors">
@@ -49,11 +50,11 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h3 className="text-white font-semibold mb-4 text-sm">Contact</h3>
+            <h3 className="text-white font-semibold mb-4 text-sm">{t('contact')}</h3>
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-sm text-slate-400">
                 <MapPin size={14} className="text-primary-400 flex-shrink-0" />
-                Kombolcha, Amhara Region, Ethiopia
+                {t('regionAddress')}
               </li>
               <li className="flex items-center gap-2 text-sm text-slate-400">
                 <Mail size={14} className="text-primary-400 flex-shrink-0" />
@@ -69,9 +70,9 @@ export default function Footer() {
 
         <div className="border-t border-slate-800 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} Kombolcha Showcase Platform. All rights reserved.
+            {t('copyright', { year: new Date().getFullYear() })}
           </p>
-          <p className="text-xs text-slate-500">Made with care in Ethiopia</p>
+          <p className="text-xs text-slate-500">{t('madeWithCare')}</p>
         </div>
       </div>
     </footer>
