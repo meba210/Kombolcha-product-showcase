@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Factory, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
-import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
 
@@ -27,9 +26,9 @@ export default function LoginPage() {
 
   function validate(em: string, pw: string): FormErrors {
     const errs: FormErrors = {};
-    if (!em.trim()) errs.email = t('login_err_email_required');
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.trim())) errs.email = t('login_err_email_invalid');
-    if (!pw) errs.password = t('login_err_password_required');
+    if (!em.trim()) errs.email = t('emailRequired');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.trim())) errs.email = t('invalidEmail');
+    if (!pw) errs.password = t('passwordRequired');
     return errs;
   }
 
@@ -80,12 +79,12 @@ export default function LoginPage() {
         setTouched({ email: true, password: true });
       } else if (status === 401) {
         setServerErrors({
-          email: t('login_err_email_wrong'),
-          password: t('login_err_password_wrong'),
+          email: t('accountNotFound'),
+          password: t('incorrectPassword'),
         });
         setTouched({ email: true, password: true });
       } else {
-        toast.error(err?.response?.data?.message || 'Login failed');
+        toast.error(err?.response?.data?.message || t('loginFailed'));
       }
     } finally {
       setLoading(false);
@@ -103,32 +102,21 @@ export default function LoginPage() {
           <div className="w-14 h-14 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Factory size={28} className="text-white" />
           </div>
-<<<<<<< HEAD
-          <h1 className="text-2xl font-bold text-smoke-900">{t('login_title')}</h1>
-          <p className="text-smoke-600 mt-1">{t('login_subtitle')}</p>
-=======
           <h1 className="text-2xl font-bold text-smoke-900">{t('welcomeBackTitle')}</h1>
           <p className="text-smoke-600 mt-1">{t('signInToAccount')}</p>
->>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
         </div>
 
         <div className="card p-8">
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* Email */}
             <div>
-<<<<<<< HEAD
-              <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                {t('login_email_label')}
-              </label>
-=======
               <label className="block text-sm font-medium text-smoke-700 mb-1.5">{t('emailLabel')}</label>
->>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
               <input
                 type="email"
                 value={email}
                 onChange={handleEmailChange}
                 onBlur={() => handleBlur('email')}
-                placeholder={t('login_email_placeholder')}
+                placeholder={t('emailPlaceholder')}
                 className={inputClass('email')}
                 autoComplete="email"
               />
@@ -139,20 +127,14 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-<<<<<<< HEAD
-              <label className="block text-sm font-medium text-smoke-700 mb-1.5">
-                {t('login_password_label')}
-              </label>
-=======
               <label className="block text-sm font-medium text-smoke-700 mb-1.5">{t('passwordLabel')}</label>
->>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={handlePasswordChange}
                   onBlur={() => handleBlur('password')}
-                  placeholder={t('login_password_placeholder')}
+                  placeholder={t('passwordPlaceholder')}
                   className={`${inputClass('password')} pr-10`}
                   autoComplete="current-password"
                 />
@@ -169,24 +151,19 @@ export default function LoginPage() {
               )}
             </div>
 
-<<<<<<< HEAD
-            <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-base">
-              {loading ? t('login_submitting') : t('login_submit')}
-=======
             <button
               type="submit"
               disabled={loading}
               className="btn-primary w-full py-3 text-base"
             >
               {loading ? t('signingIn') : t('signIn')}
->>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
             </button>
           </form>
 
           <p className="text-center text-sm text-smoke-600 mt-6">
-            {t('login_no_account')}{' '}
+            {t('noAccount')}{' '}
             <Link to="/register" className="text-primary-600 font-medium hover:text-primary-700">
-              {t('login_register_link')}
+              {t('registerHere')}
             </Link>
           </p>
         </div>

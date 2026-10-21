@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-<<<<<<< HEAD
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
-=======
-import { useQuery } from '@tanstack/react-query';
 import {
   Trash2,
   Plus,
@@ -14,7 +10,6 @@ import {
   AlertTriangle,
   X,
 } from 'lucide-react';
->>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
 import api from '../../lib/api';
 import { useCartStore } from '../../store/cartStore';
 import toast from 'react-hot-toast';
@@ -77,26 +72,15 @@ function RemoveConfirm({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function CartPage() {
-<<<<<<< HEAD
-  const { setCart } = useCartStore();
-=======
   const { t } = useTranslation();
-  const { cart, setCart } = useCartStore();
->>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
+  const { setCart } = useCartStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  // track which item is currently being updated to disable its buttons
   const [updatingId, setUpdatingId] = useState<number | null>(null);
-
-<<<<<<< HEAD
-=======
-  // Which item is pending removal — { id, name } or null
   const [pendingRemove, setPendingRemove] = useState<{
     id: number;
     name: string;
   } | null>(null);
-
->>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
   const { data, isLoading } = useQuery({
     queryKey: ['cart'],
     queryFn: () => api.get('/cart').then((r) => r.data),
@@ -114,20 +98,9 @@ export default function CartPage() {
       queryClient.setQueryData(['cart'], { cart: res.data.cart });
       setCart(res.data.cart);
     } catch {
-<<<<<<< HEAD
-      toast.error('Failed to update quantity');
+      toast.error(t('failedUpdateQuantity'));
     } finally {
       setUpdatingId(null);
-    }
-  };
-
-  const removeItem = async (itemId: number) => {
-    setUpdatingId(itemId);
-    try {
-      const res = await api.delete(`/cart/item/${itemId}`);
-      queryClient.setQueryData(['cart'], { cart: res.data.cart });
-=======
-      toast.error(t('failedUpdateQuantity'));
     }
   };
 
@@ -135,19 +108,13 @@ export default function CartPage() {
     if (!pendingRemove) return;
     try {
       const res = await api.delete(`/cart/item/${pendingRemove.id}`);
->>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
+      queryClient.setQueryData(['cart'], { cart: res.data.cart });
       setCart(res.data.cart);
       toast.success(t('itemRemoved'));
     } catch {
-<<<<<<< HEAD
-      toast.error('Failed to remove item');
-    } finally {
-      setUpdatingId(null);
-=======
       toast.error(t('failedRemoveItem'));
     } finally {
       setPendingRemove(null);
->>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
     }
   };
 
@@ -202,75 +169,6 @@ export default function CartPage() {
                 factory: { factory_name: string } | null;
                 category: { category_name: string } | null;
               };
-<<<<<<< HEAD
-            }) => (
-              <div key={item.cart_item_id} className="card p-5 flex gap-4">
-                {/* Image */}
-                <div className="w-20 h-20 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
-                  {item.product.image ? (
-                    <img
-                      src={item.product.image}
-                      alt={item.product.product_name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl">
-                      📦
-                    </div>
-                  )}
-                </div>
-
-                {/* Details */}
-                <div className="flex-1 min-w-0">
-                  <Link
-                    to={`/products/${item.product.product_id}`}
-                    className="font-semibold text-slate-900 hover:text-primary-600 line-clamp-1"
-                  >
-                    {item.product.product_name}
-                  </Link>
-                  <p className="text-sm text-slate-500">
-                    {item.product.factory?.factory_name || 'No Factory'}
-                  </p>
-                  <p className="text-sm font-medium text-primary-600 mt-1">
-                    ETB {Number(item.product.price).toLocaleString()} each
-                  </p>
-                </div>
-
-                {/* Quantity & Actions */}
-                <div className="flex flex-col items-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => removeItem(item.cart_item_id)}
-                    disabled={updatingId === item.cart_item_id}
-                    className="text-slate-400 hover:text-red-500 transition-colors disabled:opacity-40"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateQuantity(item.cart_item_id, item.quantity - 1)
-                      }
-                      disabled={updatingId === item.cart_item_id}
-                      className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <span className="w-8 text-center text-sm font-medium">
-                      {updatingId === item.cart_item_id ? '…' : item.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateQuantity(item.cart_item_id, item.quantity + 1)
-                      }
-                      disabled={updatingId === item.cart_item_id}
-                      className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <Plus size={12} />
-                    </button>
-=======
             }) => {
               const isPending = pendingRemove?.id === item.cart_item_id;
               return (
@@ -363,7 +261,6 @@ export default function CartPage() {
                     <p className="font-bold text-slate-900 text-sm">
                       ETB {Number(item.subtotal).toLocaleString()}
                     </p>
->>>>>>> a96d4d9bff01c20d9a2cb47f05bb707fa203cb91
                   </div>
                 </div>
               );

@@ -12,7 +12,16 @@ export const getAllFactories = async (_req: AuthRequest, res: Response): Promise
       },
       orderBy: { factory_name: 'asc' },
     });
-    res.json({ success: true, factories });
+    res.json({
+      success: true,
+      factories: factories.map((factory) => ({
+        ...factory,
+        _count: {
+          ...factory._count,
+          products: factory._count.product,
+        },
+      })),
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch factories' });
   }
@@ -25,7 +34,7 @@ export const getFactoryById = async (req: AuthRequest, res: Response): Promise<v
       where: { factory_id: parseInt(id) },
       include: {
         user: { select: { full_name: true, email: true, phone_number: true } },
-        products: {
+        product: {
           where: { availability_status: 'AVAILABLE' },
           include: { category: true },
           take: 12,
@@ -36,7 +45,8 @@ export const getFactoryById = async (req: AuthRequest, res: Response): Promise<v
       res.status(404).json({ success: false, message: 'Factory not found' });
       return;
     }
-    res.json({ success: true, factory });
+    const { product, ...factoryData } = factory;
+    res.json({ success: true, factory: { ...factoryData, products: product } });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch factory' });
   }
@@ -80,7 +90,16 @@ export const getAdminFactories = async (_req: AuthRequest, res: Response): Promi
       },
       orderBy: { factory_name: 'asc' },
     });
-    res.json({ success: true, factories });
+    res.json({
+      success: true,
+      factories: factories.map((factory) => ({
+        ...factory,
+        _count: {
+          ...factory._count,
+          products: factory._count.product,
+        },
+      })),
+    });
   } catch (error) {
     console.error('GetAdminFactories error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch factories' });
