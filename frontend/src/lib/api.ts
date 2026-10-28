@@ -14,14 +14,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 globally
+// Handle 401 globally — only redirect when no token exists at all
+// (avoids false redirect on page refresh before store hydrates)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const token = localStorage.getItem('token');
+      // Only wipe session and redirect if there really is no valid token
+      if (!token) {
+        window.location.href = '/login';
+      } else {
+        // Token exists but was rejected — clear it and redirect
+        localStorage.removeItem('token');
+        // use a small delay so any in-flight state can settle
+        setTimeout(() => { window.location.href = '/login'; }, 100);
+      }
     }
     return Promise.reject(error);
   }

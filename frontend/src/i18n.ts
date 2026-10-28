@@ -465,7 +465,15 @@ const resources = {
       welcomeBackTitle: 'Welcome back',
       signInToAccount: 'Sign in to your account.',
       emailLabel: 'Email',
+      emailPlaceholder: 'you@example.com',
+      emailRequired: 'Email is required',
+      invalidEmail: 'Please enter a valid email address',
       passwordLabel: 'Password',
+      passwordPlaceholder: 'Enter your password',
+      passwordRequired: 'Password is required',
+      accountNotFound: 'No account found with this email',
+      incorrectPassword: 'Incorrect password',
+      loginFailed: 'Login failed',
       signingIn: 'Signing in...',
       signIn: 'Sign In',
       noAccount: "Don't have an account?",
@@ -480,7 +488,16 @@ const resources = {
       phoneLabel: 'Phone Number',
       addressLabel: 'Address',
       factoryName: 'Factory Name',
+      factoryNamePlaceholder: 'Enter your factory name',
       factoryLocation: 'Factory Location',
+      phonePlaceholder: '+251 911 000 000',
+      fieldRequired: '{{field}} is required',
+      fieldMinLength: '{{field}} must be at least {{count}} characters',
+      passwordMinLength: 'Password must be at least {{count}} characters',
+      passwordMustContainLetter: 'Password must contain at least one letter',
+      passwordMustContainNumber: 'Password must contain at least one number',
+      phoneInvalid: 'Please enter a valid phone number',
+      passwordLooksGood: 'Password looks good',
       factoryApprovalWarning:
         'Factory accounts require admin approval before you can list products.',
       creatingAccount: 'Creating account...',
@@ -1168,7 +1185,15 @@ const resources = {
       welcomeBackTitle: 'እንኳን ተመለሱ',
       signInToAccount: 'ወደ አካውንትዎ ይግቡ።',
       emailLabel: 'ኢሜይል',
+      emailPlaceholder: 'you@example.com',
+      emailRequired: 'ኢሜይል ያስፈልጋል',
+      invalidEmail: 'ትክክለኛ ኢሜይል ያስገቡ',
       passwordLabel: 'የይለፍ ቃል',
+      passwordPlaceholder: 'የይለፍ ቃል ያስገቡ',
+      passwordRequired: 'የይለፍ ቃል ያስፈልጋል',
+      accountNotFound: 'በዚህ ኢሜይል የተመዘገበ አካውንት አልተገኘም',
+      incorrectPassword: 'የይለፍ ቃሉ ትክክል አይደለም',
+      loginFailed: 'መግባት አልተሳካም',
       signingIn: 'በመግባት ላይ...',
       signIn: 'ግባ',
       noAccount: 'አካውንት የለዎትም?',
@@ -1182,7 +1207,16 @@ const resources = {
       phoneLabel: 'ስልክ ቁጥር',
       addressLabel: 'አድራሻ',
       factoryName: 'የፋብሪካ ስም',
+      factoryNamePlaceholder: 'የፋብሪካ ስም ያስገቡ',
       factoryLocation: 'የፋብሪካ ቦታ',
+      phonePlaceholder: '+251 911 000 000',
+      fieldRequired: '{{field}} ያስፈልጋል',
+      fieldMinLength: '{{field}} ቢያንስ {{count}} ቁምፊዎች መሆን አለበት',
+      passwordMinLength: 'የይለፍ ቃል ቢያንስ {{count}} ቁምፊዎች መሆን አለበት',
+      passwordMustContainLetter: 'የይለፍ ቃሉ ቢያንስ አንድ ፊደል መያዝ አለበት',
+      passwordMustContainNumber: 'የይለፍ ቃሉ ቢያንስ አንድ ቁጥር መያዝ አለበት',
+      phoneInvalid: 'ትክክለኛ ስልክ ቁጥር ያስገቡ',
+      passwordLooksGood: 'የይለፍ ቃሉ ጥሩ ነው',
       factoryApprovalWarning:
         'የፋብሪካ አካውንቶች ምርቶችን ከማስተዋወቅዎ በፊት የአስተዳዳሪ ጸዳቂ ይፈልጋሉ።',
       creatingAccount: 'አካውንት እየተፈጠረ ነው...',
@@ -1433,9 +1467,14 @@ const resources = {
 
 i18n.use(initReactI18next).init({
   resources,
-  lng: 'en',
+  lng: localStorage.getItem('lang') || 'en',
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
+});
+
+// Persist language choice across page refreshes
+i18n.on('languageChanged', (lng) => {
+  localStorage.setItem('lang', lng);
 });
 
 export default i18n;

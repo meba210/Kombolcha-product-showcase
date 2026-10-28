@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '../hooks/useDebounce';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import ProductCard, { Product } from '../components/ProductCard';
 import { PageLoader } from '../components/LoadingSpinner';
-import { useTranslation } from 'react-i18next';
 
 export default function ProductsPage() {
   const { t } = useTranslation();
@@ -19,9 +19,9 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
 
-useEffect(() => {
-  setPage(1);
-}, [debouncedSearch]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],

@@ -10,34 +10,59 @@ export interface Factory {
   factory_id: number;
   factory_name: string;
   location: string;
-  latitude: number | null;
-  longitude: number | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   _count?: {
     product: number;
   };
 }
 
+type MappedFactory = Factory & {
+  latitude: number;
+  longitude: number;
+};
+
 interface GoogleMapProps {
   factories: Factory[];
 }
 
-
-
 export default function GoogleMap({ factories }: GoogleMapProps) {
-  const [selectedFactory, setSelectedFactory] = useState<Factory | null>(null);
+  const [selectedFactory, setSelectedFactory] =
+    useState<MappedFactory | null>(null);
 
-  const validFactories = factories.filter(
-    (factory) => factory.latitude !== null && factory.longitude !== null
-  );
+  const validFactories: MappedFactory[] = factories.flatMap((factory) => {
+    if (
+      factory.latitude === null ||
+      factory.latitude === undefined ||
+      factory.longitude === null ||
+      factory.longitude === undefined ||
+      (typeof factory.latitude === 'string' && !factory.latitude.trim()) ||
+      (typeof factory.longitude === 'string' && !factory.longitude.trim())
+    ) {
+      return [];
+    }
+
+    const latitude = Number(factory.latitude);
+    const longitude = Number(factory.longitude);
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      return [];
+    }
+
+    return [{ ...factory, latitude, longitude }];
+  });
 
   // Default center only when there are no factory coordinates yet
   const defaultCenter = {
     lat: 11.075,
     lng: 39.745,
   };
-
-
-   
 
   return (
     <div className="w-full h-[550px] rounded-2xl overflow-hidden">
@@ -56,8 +81,8 @@ export default function GoogleMap({ factories }: GoogleMapProps) {
             <AdvancedMarker
               key={factory.factory_id}
               position={{
-                lat: factory.latitude!,
-                lng: factory.longitude!,
+                lat: factory.latitude,
+                lng: factory.longitude,
               }}
               title={factory.factory_name}
               onClick={() => setSelectedFactory(factory)}
@@ -89,9 +114,7 @@ export default function GoogleMap({ factories }: GoogleMapProps) {
             </AdvancedMarker>
           ))}
 
-          {selectedFactory &&
-            selectedFactory.latitude !== null &&
-            selectedFactory.longitude !== null && (
+          {selectedFactory && (
               <InfoWindow
                 position={{
                   lat: selectedFactory.latitude,

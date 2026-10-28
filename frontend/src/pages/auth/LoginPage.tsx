@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Factory, Eye, EyeOff } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
 import { useTranslation } from 'react-i18next';
+import { useAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
+
+interface FormErrors {
+  email?: string;
+  password?: string;
+}
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -12,29 +17,83 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState({ email: false, password: false });
+  const [serverErrors, setServerErrors] = useState<FormErrors>({});
+
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
 
+  function validate(em: string, pw: string): FormErrors {
+    const errs: FormErrors = {};
+    if (!em.trim()) errs.email = t('emailRequired');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.trim())) errs.email = t('invalidEmail');
+    if (!pw) errs.password = t('passwordRequired');
+    return errs;
+  }
+
+  const handleBlur = (field: 'email' | 'password') => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    setErrors(validate(email, password));
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (serverErrors.email) setServerErrors((prev) => ({ ...prev, email: undefined }));
+    if (touched.email) setErrors(validate(e.target.value, password));
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (serverErrors.password) setServerErrors((prev) => ({ ...prev, password: undefined }));
+    if (touched.password) setErrors(validate(email, e.target.value));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched({ email: true, password: true });
+    const errs = validate(email, password);
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
     setLoading(true);
     try {
-      const res = await api.post('/auth/login', { email, password });
+      const res = await api.post('/auth/login', { email: email.trim(), password });
       const { token, user } = res.data;
       setAuth(user, token);
       toast.success(`Welcome back, ${user.full_name.split(' ')[0]}!`);
-
       if (user.role === 'ADMIN') navigate('/admin');
       else if (user.role === 'FACTORY')
         navigate(user.approval_status === 'APPROVED' ? '/factory' : '/factory/pending');
       else navigate('/buyer');
     } catch (err: any) {
-      const msg = err?.response?.data?.message || 'Login failed';
-      toast.error(msg);
+      const status = err?.response?.status;
+      const apiErrors: { field: string; message: string }[] = err?.response?.data?.errors;
+      if (Array.isArray(apiErrors)) {
+        const mapped: FormErrors = {};
+        apiErrors.forEach((e) => {
+          if (e.field === 'email') mapped.email = e.message;
+          if (e.field === 'password') mapped.password = e.message;
+        });
+        setServerErrors(mapped);
+        setTouched({ email: true, password: true });
+      } else if (status === 401) {
+        setServerErrors({
+          email: t('accountNotFound'),
+          password: t('incorrectPassword'),
+        });
+        setTouched({ email: true, password: true });
+      } else {
+        toast.error(err?.response?.data?.message || t('loginFailed'));
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const getError = (field: 'email' | 'password') => serverErrors[field] || errors[field];
+  const inputClass = (field: 'email' | 'password') =>
+    `input-field${touched[field] && getError(field) ? ' border-red-500 focus:ring-red-500' : ''}`;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 bg-smoke-50">
@@ -48,29 +107,36 @@ export default function LoginPage() {
         </div>
 
         <div className="card p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-smoke-700 mb-1.5">{t('emailLabel')}</label>
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="you@example.com"
-                className="input-field"
+                onChange={handleEmailChange}
+                onBlur={() => handleBlur('email')}
+                placeholder={t('emailPlaceholder')}
+                className={inputClass('email')}
+                autoComplete="email"
               />
+              {touched.email && getError('email') && (
+                <p className="mt-1 text-xs text-red-600">{getError('email')}</p>
+              )}
             </div>
 
+            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-smoke-700 mb-1.5">{t('passwordLabel')}</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="input-field pr-10"
+                  onChange={handlePasswordChange}
+                  onBlur={() => handleBlur('password')}
+                  placeholder={t('passwordPlaceholder')}
+                  className={`${inputClass('password')} pr-10`}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -80,6 +146,9 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {touched.password && getError('password') && (
+                <p className="mt-1 text-xs text-red-600">{getError('password')}</p>
+              )}
             </div>
 
             <button
@@ -92,12 +161,9 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-sm text-smoke-600 mt-6">
-            Don't have an account?{' '}
-            <Link
-              to="/register"
-              className="text-primary-600 font-medium hover:text-primary-700"
-            >
-              Register here
+            {t('noAccount')}{' '}
+            <Link to="/register" className="text-primary-600 font-medium hover:text-primary-700">
+              {t('registerHere')}
             </Link>
           </p>
         </div>

@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 import { ShoppingCart, Eye } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 
 export interface Product {
   product_id: number;
@@ -37,7 +37,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     try {
       const res = await api.post('/cart/add', {
         product_id: Number(product.product_id),
-        quantity: Number(1),
+        quantity: 1,
       });
       setCart(res.data.cart);
       toast.success(t('addedToCart'));
@@ -72,7 +72,6 @@ export default function ProductCard({ product }: ProductCardProps) {
             </div>
           </div>
         )}
-        {/* Availability badge */}
         <div className="absolute top-2 right-2">
           <span
             className={clsx(

@@ -1,25 +1,20 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import {
-  ShoppingCart,
-  MessageSquare,
-  ArrowLeft,
-  Factory,
-  Tag,
-} from 'lucide-react';
+import { ShoppingCart, MessageSquare, ArrowLeft, Factory } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { useCartStore } from '../store/cartStore';
 import toast from 'react-hot-toast';
 import { PageLoader } from '../components/LoadingSpinner';
 import StatusBadge from '../components/StatusBadge';
-import { useTranslation } from 'react-i18next';
 
 export default function ProductDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { user, isAuthenticated } = useAuthStore();
   const { setCart } = useCartStore();
+  const navigate = useNavigate();
 
   const { data, isLoading } = useQuery({
     queryKey: ['product', id],
@@ -32,10 +27,7 @@ export default function ProductDetailPage() {
       return;
     }
     try {
-      const res = await api.post('/cart/add', {
-        product_id: Number(id!),
-        quantity: Number(1),
-      });
+      const res = await api.post('/cart/add', { product_id: Number(id!), quantity: 1 });
       setCart(res.data.cart);
       toast.success(t('addedToCart'));
     } catch (err: unknown) {
@@ -44,29 +36,25 @@ export default function ProductDetailPage() {
     }
   };
 
-  const navigate = useNavigate();
-
-  // const handleContactSeller = () => {
-  //   if (!isAuthenticated) {
-  //     toast.error('Please login to contact the seller');
-  //     return;
-  //   }
-
-  //   const recipient = data?.product?.created_by_admin
-  //     ? data.product.admin?.user
-  //     : data?.product?.factory?.user;
-
-  //   if (!recipient) {
-  //     toast.error('Seller information not available');
-  //     return;
-  //   }
-
-  //   navigate(
-  //     `/messages?to=${recipient.user_id}&product_id=${product.product_id}&product_name=${encodeURIComponent(
-  //       product.product_name
-  //     )}`
-  //   );
-  // };
+  const handleContactSeller = () => {
+    if (!isAuthenticated) {
+      toast.error(t('loginToContact'));
+      return;
+    }
+    const recipient = product.created_by_admin
+      ? product.admin?.user
+      : product.factory?.user;
+    if (!recipient) {
+      toast.error(t('sellerNotAvailable'));
+      return;
+    }
+    const query = new URLSearchParams();
+    query.set('to', String(recipient.user_id));
+    query.set('product_id', String(product.product_id));
+    query.set('product_name', product.product_name);
+    if (product.image) query.set('product_image', product.image);
+    navigate(`/messages?${query.toString()}`);
+  };
 
   if (isLoading) return <PageLoader />;
   if (!data?.product)
@@ -81,39 +69,12 @@ export default function ProductDetailPage() {
 
   const { product } = data;
 
-  const handleContactSeller = () => {
-    if (!isAuthenticated) {
-      toast.error(t('loginToContact'));
-      return;
-    }
-
-    const recipient = product.created_by_admin
-      ? product.admin?.user
-      : product.factory?.user;
-
-    if (!recipient) {
-      toast.error(t('sellerNotAvailable'));
-      return;
-    }
-
-    const query = new URLSearchParams();
-    query.set('to', String(recipient.user_id));
-    query.set('product_id', String(product.product_id));
-    query.set('product_name', product.product_name);
-    if (product.image) query.set('product_image', product.image);
-
-    navigate(`/messages?${query.toString()}`);
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
-        <Link
-          to="/products"
-          className="hover:text-primary-600 flex items-center gap-1"
-        >
-          <ArrowLeft size={14} /> Products
+        <Link to="/products" className="hover:text-primary-600 flex items-center gap-1">
+          <ArrowLeft size={14} /> {t('backToProducts')}
         </Link>
         <span>/</span>
         <span className="text-slate-700">{product.product_name}</span>
@@ -123,11 +84,7 @@ export default function ProductDetailPage() {
         {/* Image */}
         <div className="aspect-square bg-slate-100 rounded-2xl overflow-hidden">
           {product.image ? (
-            <img
-              src={product.image}
-              alt={product.product_name}
-              className="w-full h-full object-cover"
-            />
+            <img src={product.image} alt={product.product_name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <span className="text-8xl">📦</span>
@@ -138,58 +95,35 @@ export default function ProductDetailPage() {
         {/* Details */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <span className="badge badge-blue">
-              {product.category.category_name}
-            </span>
+            <span className="badge badge-blue">{product.category.category_name}</span>
             <StatusBadge status={product.availability_status} />
           </div>
 
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            {product.product_name}
-          </h1>
-
-          {/* <div className="flex items-center gap-2 text-slate-500 mb-6">
-            <Factory size={16} />
-            <Link
-              to={`/factories/${product.factory.factory_id}`}
-              className="hover:text-primary-600 font-medium"
-            >
-              {product.factory.factory_name}
-            </Link>
-            <span>·</span>
-            <span>{product.factory.location}</span>
-          </div> */}
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">{product.product_name}</h1>
 
           <div className="flex items-center gap-2 text-slate-500 mb-6">
             <Factory size={16} />
-
             {product.factory ? (
               <>
-                <Link
-                  to={`/factories/${product.factory.factory_id}`}
-                  className="hover:text-primary-600 font-medium"
-                >
+                <Link to={`/factories/${product.factory.factory_id}`} className="hover:text-primary-600 font-medium">
                   {product.factory.factory_name}
                 </Link>
-
                 <span>·</span>
-
                 <span>{product.factory.location}</span>
               </>
             ) : product.admin ? (
               <>
                 <span className="font-medium text-slate-700">
-                  {product.admin.user?.full_name || 'Admin Seller'}
+                  {product.admin.user?.full_name || t('adminSeller')}
                 </span>
-
                 <span>·</span>
-
                 <span>{t('adminRole')}</span>
               </>
             ) : (
               <span>{t('sellerUnavailable')}</span>
             )}
           </div>
+
           <div className="text-4xl font-bold text-slate-900 mb-6">
             ETB {Number(product.price).toLocaleString()}
           </div>

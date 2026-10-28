@@ -6,7 +6,6 @@ export default function Footer() {
   const { pathname } = useLocation();
   const { t } = useTranslation();
 
-  // The homepage has its own full footer section built in — skip the shared one
   if (pathname === '/') return null;
 
   return (

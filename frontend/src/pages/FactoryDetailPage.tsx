@@ -1,10 +1,10 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, Mail, Phone, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import ProductCard, { Product } from '../components/ProductCard';
 import { PageLoader } from '../components/LoadingSpinner';
-import { useTranslation } from 'react-i18next';
 
 export default function FactoryDetailPage() {
   const { t } = useTranslation();

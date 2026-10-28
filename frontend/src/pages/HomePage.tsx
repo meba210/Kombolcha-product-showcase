@@ -20,6 +20,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
+import { useScrollReveal } from '../hooks/useScrollReveal';
 import BuyerLandingPage from '../pages/BuyerLandingPage';
 import api from '../lib/api';
 import industrialPark from '../assets/industrial-park.jpg';
@@ -116,27 +117,25 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, []);
 
-  if (user?.role === 'BUYER') return <BuyerLandingPage />;
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: categoriesData } = useQuery({
     queryKey: ['categories-nav'],
     queryFn: () => api.get('/categories').then((r) => r.data),
+    enabled: user?.role !== 'BUYER',
   });
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: productsData } = useQuery({
     queryKey: ['featured-products'],
     queryFn: () => api.get('/products?limit=5').then((r) => r.data),
+    enabled: user?.role !== 'BUYER',
   });
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: highlightsData } = useQuery({
     queryKey: ['public-highlights'],
     queryFn: () => api.get('/reports/highlights').then((r) => r.data),
+    enabled: user?.role !== 'BUYER',
   });
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data: factoriesData } = useQuery({
     queryKey: ['factories-map'],
     queryFn: () => api.get('/factories').then((r) => r.data),
+    enabled: user?.role !== 'BUYER',
   });
 
   const categories: { category_id: number; category_name: string }[] =
@@ -145,6 +144,8 @@ export default function HomePage() {
   const highlight = highlightsData;
   const fp = highlight?.featuredProduct ?? null;
   const mapFactories = factoriesData?.factories ?? [];
+
+  if (user?.role === 'BUYER') return <BuyerLandingPage />;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -523,6 +524,9 @@ export default function HomePage() {
               <p className="text-smoke-500 text-sm mt-1">
                 {t('browseCategoriesDesc')}
               </p>
+              <h2 className="reveal reveal-fade-up delay-100 text-3xl lg:text-4xl font-bold text-white leading-tight">
+                {t('sectors_heading')}<br />{t('sectors_heading2')}
+              </h2>
             </div>
             <Link
               to="/products"
@@ -983,6 +987,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
     </div>
   );
 }

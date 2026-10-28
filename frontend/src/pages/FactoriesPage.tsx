@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, Package, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
 import { PageLoader } from '../components/LoadingSpinner';
-import { useTranslation } from 'react-i18next';
 
 export default function FactoriesPage() {
   const { t } = useTranslation();

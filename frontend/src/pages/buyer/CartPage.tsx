@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Trash2,
   Plus,
@@ -73,15 +73,14 @@ function RemoveConfirm({
 
 export default function CartPage() {
   const { t } = useTranslation();
-  const { cart, setCart } = useCartStore();
+  const { setCart } = useCartStore();
   const navigate = useNavigate();
-
-  // Which item is pending removal — { id, name } or null
+  const queryClient = useQueryClient();
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [pendingRemove, setPendingRemove] = useState<{
     id: number;
     name: string;
   } | null>(null);
-
   const { data, isLoading } = useQuery({
     queryKey: ['cart'],
     queryFn: () => api.get('/cart').then((r) => r.data),
@@ -92,11 +91,16 @@ export default function CartPage() {
   }, [data, setCart]);
 
   const updateQuantity = async (itemId: number, quantity: number) => {
+    setUpdatingId(itemId);
     try {
       const res = await api.put(`/cart/item/${itemId}`, { quantity });
+      // update both the query cache and the zustand store
+      queryClient.setQueryData(['cart'], { cart: res.data.cart });
       setCart(res.data.cart);
     } catch {
       toast.error(t('failedUpdateQuantity'));
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -104,6 +108,7 @@ export default function CartPage() {
     if (!pendingRemove) return;
     try {
       const res = await api.delete(`/cart/item/${pendingRemove.id}`);
+      queryClient.setQueryData(['cart'], { cart: res.data.cart });
       setCart(res.data.cart);
       toast.success(t('itemRemoved'));
     } catch {
@@ -115,8 +120,9 @@ export default function CartPage() {
 
   if (isLoading) return <PageLoader />;
 
+  // always read from query cache so UI is always in sync
   const cartData = data?.cart;
-  const cartItems = cartData
+  const cartItems: any[] = cartData
     ? (cartData.cartItems ?? cartData.cartitem ?? [])
     : [];
   const isEmpty = cartItems.length === 0;
