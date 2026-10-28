@@ -6,6 +6,7 @@ import { PageLoader } from '../components/LoadingSpinner';
 import StatusBadge from '../components/StatusBadge';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import TableControls, { TablePagination, useTableControls } from '../components/TableControls';
 
 interface DeliveryManagementPageProps {
   role: 'ADMIN' | 'FACTORY';
@@ -109,14 +110,17 @@ export default function DeliveryManagementPage({
     onError: () => toast.error(t('deliverySaveFailed')),
   });
 
-  if (settingsQuery.isLoading || ordersQuery.isLoading) return <PageLoader />;
-
   const zones = settingsQuery.data?.zones ?? [];
   const drivers = settingsQuery.data?.drivers ?? [];
   const deliveries = ordersQuery.data?.deliveries ?? [];
+  const zonesTable = useTableControls(zones, (zone: any) => `${zone.town} ${zone.factory?.factory_name ?? ''} ${zone.provider_type}`, (zone: any) => zone.is_active ? 'ACTIVE' : 'INACTIVE');
+  const driversTable = useTableControls(drivers, (driver: any) => `${driver.full_name} ${driver.phone_number ?? ''}`, (driver: any) => driver.is_active ? 'ACTIVE' : 'INACTIVE');
+  const deliveriesTable = useTableControls(deliveries, (delivery: any) => `${delivery.order.order_id} ${delivery.tracking_code} ${delivery.seller_name} ${delivery.town} ${delivery.address} ${delivery.order.buyer.user.full_name}`, (delivery: any) => delivery.status);
   const usesOwnDelivery = Boolean(
     settingsQuery.data?.settings?.uses_own_delivery
   );
+
+  if (settingsQuery.isLoading || ordersQuery.isLoading) return <PageLoader />;
 
   const handleZoneSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -207,11 +211,12 @@ export default function DeliveryManagementPage({
             <Plus size={16} /> {t('addDeliveryZone')}
           </button>
         </form>
+        <TableControls search={zonesTable.search} onSearchChange={zonesTable.setSearch} filter={zonesTable.filter} onFilterChange={zonesTable.setFilter} filterLabel="status" filterOptions={[{ value: 'ACTIVE', label: t('active') }, { value: 'INACTIVE', label: t('inactive') }]} page={zonesTable.page} totalPages={zonesTable.totalPages} totalItems={zonesTable.totalItems} onPageChange={zonesTable.setPage} />
         {zones.length === 0 ? (
           <p className="text-sm text-slate-500">{t('noDeliveryZones')}</p>
         ) : (
           <div className="divide-y divide-slate-100">
-            {zones.map((zone: any) => (
+            {zonesTable.pageItems.map((zone: any) => (
               <div
                 key={zone.delivery_zone_id}
                 className="flex flex-wrap items-center justify-between gap-3 py-3"
@@ -252,6 +257,8 @@ export default function DeliveryManagementPage({
             ))}
           </div>
         )}
+        {zones.length > 0 && zonesTable.totalItems === 0 && <p className="py-5 text-center text-sm text-slate-500">No zones match your search.</p>}
+        <TablePagination page={zonesTable.page} totalPages={zonesTable.totalPages} totalItems={zonesTable.totalItems} onPageChange={zonesTable.setPage} />
       </section>
 
       {isAdmin && (
@@ -289,8 +296,9 @@ export default function DeliveryManagementPage({
               <Plus size={16} /> {t('addDriver')}
             </button>
           </form>
+          <TableControls search={driversTable.search} onSearchChange={driversTable.setSearch} filter={driversTable.filter} onFilterChange={driversTable.setFilter} filterLabel="status" filterOptions={[{ value: 'ACTIVE', label: t('active') }, { value: 'INACTIVE', label: t('inactive') }]} page={driversTable.page} totalPages={driversTable.totalPages} totalItems={driversTable.totalItems} onPageChange={driversTable.setPage} />
           <div className="divide-y divide-slate-100">
-            {drivers.map((driver: any) => (
+            {driversTable.pageItems.map((driver: any) => (
               <div
                 key={driver.delivery_driver_id}
                 className="flex items-center justify-between gap-3 py-3"
@@ -322,6 +330,7 @@ export default function DeliveryManagementPage({
               </p>
             )}
           </div>
+          <TablePagination page={driversTable.page} totalPages={driversTable.totalPages} totalItems={driversTable.totalItems} onPageChange={driversTable.setPage} />
         </section>
       )}
 
@@ -332,11 +341,12 @@ export default function DeliveryManagementPage({
             {t('deliveryTracking')}
           </h2>
         </div>
+        <TableControls search={deliveriesTable.search} onSearchChange={deliveriesTable.setSearch} filter={deliveriesTable.filter} onFilterChange={deliveriesTable.setFilter} filterLabel={t('deliveryStatus')} filterOptions={deliveryStatuses.map((status) => ({ value: status, label: t(status.toLowerCase()) }))} page={deliveriesTable.page} totalPages={deliveriesTable.totalPages} totalItems={deliveriesTable.totalItems} onPageChange={deliveriesTable.setPage} />
         {deliveries.length === 0 ? (
           <p className="text-sm text-slate-500 p-5">{t('noDeliveries')}</p>
         ) : (
           <div className="divide-y divide-slate-100">
-            {deliveries.map((delivery: any) => (
+            {deliveriesTable.pageItems.map((delivery: any) => (
               <div
                 key={delivery.order_delivery_id}
                 className="p-5 grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-4 items-center"
@@ -420,6 +430,8 @@ export default function DeliveryManagementPage({
             ))}
           </div>
         )}
+        {deliveries.length > 0 && deliveriesTable.totalItems === 0 && <p className="py-5 text-center text-sm text-slate-500">No deliveries match your search.</p>}
+        <TablePagination page={deliveriesTable.page} totalPages={deliveriesTable.totalPages} totalItems={deliveriesTable.totalItems} onPageChange={deliveriesTable.setPage} />
       </section>
     </div>
   );

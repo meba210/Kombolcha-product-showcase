@@ -5,6 +5,7 @@ import { PageLoader } from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import TableControls, { TablePagination, useTableControls } from '../../components/TableControls';
 
 export default function AdminFactories() {
   const { t } = useTranslation();
@@ -19,6 +20,12 @@ export default function AdminFactories() {
     queryKey: ['pending-factories'],
     queryFn: () => api.get('/factories/pending').then((r) => r.data),
   });
+  const factories = allData?.factories ?? [];
+  const table = useTableControls(
+    factories,
+    (factory: any) => `${factory.factory_name} ${factory.location} ${factory.user.full_name} ${factory.user.email}`,
+    (factory: any) => factory.approval_status
+  );
 
   const approveMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
@@ -78,6 +85,18 @@ export default function AdminFactories() {
 
       {/* All Factories */}
       <div className="card overflow-hidden">
+        <TableControls
+          search={table.search}
+          onSearchChange={table.setSearch}
+          filter={table.filter}
+          onFilterChange={table.setFilter}
+          filterLabel="status"
+          filterOptions={['PENDING', 'APPROVED', 'REJECTED'].map((status) => ({ value: status, label: t(status.toLowerCase()) }))}
+          page={table.page}
+          totalPages={table.totalPages}
+          totalItems={table.totalItems}
+          onPageChange={table.setPage}
+        />
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr>
@@ -89,7 +108,7 @@ export default function AdminFactories() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {allData?.factories?.map((factory: {
+            {table.pageItems.map((factory: {
               factory_id: number;
               factory_name: string;
               location: string;
@@ -131,6 +150,8 @@ export default function AdminFactories() {
             ))}
           </tbody>
         </table>
+        {table.totalItems === 0 && <div className="py-10 text-center text-slate-400">No factories match your search.</div>}
+        <TablePagination page={table.page} totalPages={table.totalPages} totalItems={table.totalItems} onPageChange={table.setPage} />
       </div>
     </div>
   );

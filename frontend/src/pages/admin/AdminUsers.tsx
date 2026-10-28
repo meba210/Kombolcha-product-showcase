@@ -5,6 +5,7 @@ import api from '../../lib/api';
 import { PageLoader } from '../../components/LoadingSpinner';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import TableControls, { TablePagination, useTableControls } from '../../components/TableControls';
 
 export default function AdminUsers() {
   const { t } = useTranslation();
@@ -15,6 +16,12 @@ export default function AdminUsers() {
     queryKey: ['users', roleFilter],
     queryFn: () => api.get(`/users${roleFilter ? `?role=${roleFilter}` : ''}`).then((r) => r.data),
   });
+  const users = data?.users ?? [];
+  const table = useTableControls(
+    users,
+    (user: any) => `${user.full_name} ${user.email} ${user.phone_number ?? ''} ${user.role}`,
+    (user: any) => user.account_status
+  );
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/users/${id}`),
@@ -50,6 +57,18 @@ export default function AdminUsers() {
       </div>
 
       <div className="card overflow-hidden">
+        <TableControls
+          search={table.search}
+          onSearchChange={table.setSearch}
+          filter={table.filter}
+          onFilterChange={table.setFilter}
+          filterLabel="status"
+          filterOptions={[{ value: 'ACTIVE', label: 'Active' }, { value: 'DISABLED', label: 'Disabled' }]}
+          page={table.page}
+          totalPages={table.totalPages}
+          totalItems={table.totalItems}
+          onPageChange={table.setPage}
+        />
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr>
@@ -61,7 +80,7 @@ export default function AdminUsers() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {data?.users?.map((user: {
+            {table.pageItems.map((user: {
               user_id: number;
               full_name: string;
               email: string;
@@ -109,9 +128,10 @@ export default function AdminUsers() {
             ))}
           </tbody>
         </table>
-        {data?.users?.length === 0 && (
+        {table.totalItems === 0 && (
           <div className="text-center py-12 text-slate-400">{t('noUsersFound')}</div>
         )}
+        <TablePagination page={table.page} totalPages={table.totalPages} totalItems={table.totalItems} onPageChange={table.setPage} />
       </div>
     </div>
   );

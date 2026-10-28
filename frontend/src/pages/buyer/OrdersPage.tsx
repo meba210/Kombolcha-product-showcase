@@ -5,6 +5,7 @@ import api from '../../lib/api';
 import { PageLoader } from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
 import { useTranslation } from 'react-i18next';
+import TableControls, { TablePagination, useTableControls } from '../../components/TableControls';
 
 export default function OrdersPage() {
   const { t } = useTranslation();
@@ -13,9 +14,14 @@ export default function OrdersPage() {
     queryFn: () => api.get('/orders/my').then((r) => r.data),
   });
 
-  if (isLoading) return <PageLoader />;
+  const orders = data?.orders ?? [];
+  const table = useTableControls(
+    orders,
+    (order: any) => `${order.order_id} ${order.order_status} ${order.orderitem.map((item: any) => item.product.product_name).join(' ')}`,
+    (order: any) => order.order_status
+  );
 
-  const orders = data?.orders || [];
+  if (isLoading) return <PageLoader />;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -36,7 +42,19 @@ export default function OrdersPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {orders.map(
+          <TableControls
+            search={table.search}
+            onSearchChange={table.setSearch}
+            filter={table.filter}
+            onFilterChange={table.setFilter}
+            filterLabel="status"
+            filterOptions={['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map((status) => ({ value: status, label: t(status.toLowerCase()) }))}
+            page={table.page}
+            totalPages={table.totalPages}
+            totalItems={table.totalItems}
+            onPageChange={table.setPage}
+          />
+          {table.pageItems.map(
             (order: {
               order_id: number;
               order_date: string;
@@ -88,6 +106,8 @@ export default function OrdersPage() {
               </Link>
             )
           )}
+          {table.totalItems === 0 && <p className="py-10 text-center text-slate-400">{t('noResults')}</p>}
+          <TablePagination page={table.page} totalPages={table.totalPages} totalItems={table.totalItems} onPageChange={table.setPage} />
         </div>
       )}
     </div>

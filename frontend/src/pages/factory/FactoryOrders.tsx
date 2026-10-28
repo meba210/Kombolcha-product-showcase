@@ -6,6 +6,7 @@ import { PageLoader } from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import TableControls, { TablePagination, useTableControls } from '../../components/TableControls';
 
 const ORDER_STATUSES = [
   'PENDING',
@@ -250,6 +251,12 @@ export default function FactoryOrders() {
         )
         .then((r) => r.data),
   });
+  const orders: Order[] = data?.orders ?? [];
+  const table = useTableControls(
+    orders,
+    (order) => `${order.order_id} ${order.buyer.user.full_name} ${order.buyer.user.email} ${order.order_status}`,
+    (order) => order.order_status
+  );
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
@@ -262,8 +269,6 @@ export default function FactoryOrders() {
   });
 
   if (isLoading) return <PageLoader />;
-
-  const orders: Order[] = data?.orders ?? [];
 
   // Aggregate totals for the summary bar
   const totalGross = orders.reduce((sum, o) => sum + calcBreakdown(o).gross, 0);
@@ -336,13 +341,26 @@ export default function FactoryOrders() {
           </h2>
         </div>
 
-        {orders.length === 0 ? (
+        <TableControls
+          search={table.search}
+          onSearchChange={table.setSearch}
+          filter={table.filter}
+          onFilterChange={table.setFilter}
+          filterLabel="status"
+          filterOptions={ORDER_STATUSES.map((status) => ({ value: status, label: t(status.toLowerCase()) }))}
+          page={table.page}
+          totalPages={table.totalPages}
+          totalItems={table.totalItems}
+          onPageChange={table.setPage}
+        />
+
+        {table.totalItems === 0 ? (
           <div className="text-center py-14 text-slate-400">
             {t('noOrdersYet')}
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {orders.map((order) => {
+            {table.pageItems.map((order) => {
               const isExpanded = expandedId === order.order_id;
               const bd = calcBreakdown(order);
               const items = myItems(order);
@@ -440,6 +458,7 @@ export default function FactoryOrders() {
             })}
           </div>
         )}
+        <TablePagination page={table.page} totalPages={table.totalPages} totalItems={table.totalItems} onPageChange={table.setPage} />
       </div>
     </div>
   );
