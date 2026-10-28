@@ -13,6 +13,7 @@ interface SettlementRow {
   settlement_id: number;
   factory_id: number | null;
   gross_amount: number;
+  delivery_amount: number;
   commission_rate: number;
   commission_amount: number;
   net_amount: number;
@@ -42,6 +43,11 @@ interface Order {
   payment: { payment_status: string } | null;
   orderitem: OrderItem[];
   settlement: SettlementRow[];
+  orderdelivery: {
+    factory_id: number | null;
+    delivery_fee: number;
+    provider_type: string;
+  }[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -55,14 +61,17 @@ function deriveBreakdown(order: Order): SettlementRow[] {
 
   for (const item of order.orderitem) {
     const isAdmin = item.product.created_by_admin || !item.product.factory;
-    const key = isAdmin ? 'admin' : `factory:${item.product.factory!.factory_id}`;
+    const key = isAdmin
+      ? 'admin'
+      : `factory:${item.product.factory!.factory_id}`;
 
     if (!map.has(key)) {
       map.set(key, {
         settlement_id: -1,
         factory_id: isAdmin ? null : item.product.factory!.factory_id,
         gross_amount: 0,
-        commission_rate: isAdmin ? 0 : 0.10,
+        delivery_amount: 0,
+        commission_rate: isAdmin ? 0 : 0.1,
         commission_amount: 0,
         net_amount: 0,
         settlement_status: 'CALCULATED',
@@ -74,10 +83,21 @@ function deriveBreakdown(order: Order): SettlementRow[] {
     row.gross_amount += item.subtotal;
   }
 
+  // Attribute each delivery fee to its factory (or the platform) before
+  // deriving the commission, matching the payment settlement calculation.
+  for (const delivery of order.orderdelivery) {
+    const key = delivery.factory_id === null
+      ? 'admin'
+      : `factory:${delivery.factory_id}`;
+    const row = map.get(key);
+    if (row) row.delivery_amount += Number(delivery.delivery_fee);
+  }
+
   // Compute commission & net
   for (const row of map.values()) {
-    row.commission_amount = row.gross_amount * row.commission_rate;
-    row.net_amount = row.gross_amount - row.commission_amount;
+    const commissionBase = row.gross_amount + row.delivery_amount;
+    row.commission_amount = commissionBase * row.commission_rate;
+    row.net_amount = commissionBase - row.commission_amount;
   }
 
   return Array.from(map.values());
@@ -95,7 +115,8 @@ function SellerBreakdown({ order }: { order: Order }) {
   return (
     <div className="bg-slate-50 border-t border-slate-100 px-6 py-4">
       <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-        Seller Breakdown — Buyer paid ETB {Number(order.total_amount).toLocaleString()} once
+        Seller Breakdown — Buyer paid ETB{' '}
+        {Number(order.total_amount).toLocaleString()} once
       </p>
 
       <div className="space-y-2">
@@ -124,16 +145,32 @@ function SellerBreakdown({ order }: { order: Order }) {
 
               {/* Gross */}
               <div className="flex flex-col min-w-[90px]">
-        <span className="text-xs text-slate-400">{t('gross')}</span>
+                <span className="text-xs text-slate-400">{t('gross')}</span>
                 <span className="font-semibold text-slate-800">
                   ETB {Number(row.gross_amount).toLocaleString()}
                 </span>
               </div>
 
+              {(() => {
+                const displayedDeliveryFee = Number(row.delivery_amount);
+                return displayedDeliveryFee > 0 ? (
+                  <div className="flex flex-col min-w-[90px]">
+                    <span className="text-xs text-slate-400">
+                      {t('delivery')}
+                    </span>
+                    <span className="font-semibold text-slate-800">
+                      ETB {displayedDeliveryFee.toLocaleString()}
+                    </span>
+                  </div>
+                ) : null;
+              })()}
+
               {/* Commission */}
               <div className="flex flex-col min-w-[110px]">
                 <span className="text-xs text-slate-400">
-                  {t('platformCommissionRate', { rate: (row.commission_rate * 100).toFixed(0) })}
+                  {t('platformCommissionRate', {
+                    rate: (row.commission_rate * 100).toFixed(0),
+                  })}
                 </span>
                 <span
                   className={`font-semibold ${
@@ -200,7 +237,9 @@ export default function AdminOrders() {
     queryKey: ['admin-orders', statusFilter],
     queryFn: () =>
       api
-        .get(`/orders?limit=100${statusFilter ? `&status=${statusFilter}` : ''}`)
+        .get(
+          `/orders?limit=100${statusFilter ? `&status=${statusFilter}` : ''}`
+        )
         .then((r) => r.data),
   });
 
@@ -237,7 +276,9 @@ export default function AdminOrders() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{t('orderManagement')}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {t('orderManagement')}
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
             {t('orderManagementDesc')}
           </p>
@@ -251,7 +292,9 @@ export default function AdminOrders() {
         >
           <option value="">{t('allStatuses')}</option>
           {['PENDING', 'CONFIRMED', 'DELIVERED', 'CANCELLED'].map((s) => (
-            <option key={s} value={s}>{t(s.toLowerCase())}</option>
+            <option key={s} value={s}>
+              {t(s.toLowerCase())}
+            </option>
           ))}
         </select>
       </div>
@@ -259,12 +302,31 @@ export default function AdminOrders() {
       {/* Summary pills */}
       <div className="flex flex-wrap gap-3 mb-6">
         {[
-          { labelKey: 'totalOrders', value: orders.length, color: 'bg-slate-100 text-slate-700' },
-          { labelKey: 'adminOnly', value: adminOnlyOrders.length, color: 'bg-blue-50 text-blue-700' },
-          { labelKey: 'factoryOnly', value: factoryOnlyOrders.length, color: 'bg-purple-50 text-purple-700' },
-          { labelKey: 'mixedBoth', value: mixedOrders.length, color: 'bg-orange-50 text-orange-700' },
+          {
+            labelKey: 'totalOrders',
+            value: orders.length,
+            color: 'bg-slate-100 text-slate-700',
+          },
+          {
+            labelKey: 'adminOnly',
+            value: adminOnlyOrders.length,
+            color: 'bg-blue-50 text-blue-700',
+          },
+          {
+            labelKey: 'factoryOnly',
+            value: factoryOnlyOrders.length,
+            color: 'bg-purple-50 text-purple-700',
+          },
+          {
+            labelKey: 'mixedBoth',
+            value: mixedOrders.length,
+            color: 'bg-orange-50 text-orange-700',
+          },
         ].map((pill) => (
-          <div key={pill.labelKey} className={`px-4 py-2 rounded-xl text-sm font-semibold ${pill.color}`}>
+          <div
+            key={pill.labelKey}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold ${pill.color}`}
+          >
             {t(pill.labelKey)}: {pill.value}
           </div>
         ))}
@@ -274,7 +336,9 @@ export default function AdminOrders() {
       <div className="card overflow-hidden">
         <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">{t('allOrders')}</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              {t('allOrders')}
+            </h2>
             <p className="text-sm text-slate-500 mt-0.5">
               {t('clickRowSellerSplit')}
             </p>
@@ -282,27 +346,33 @@ export default function AdminOrders() {
         </div>
 
         {orders.length === 0 ? (
-          <div className="text-center py-14 text-slate-400">{t('noOrdersFound')}</div>
+          <div className="text-center py-14 text-slate-400">
+            {t('noOrdersFound')}
+          </div>
         ) : (
           <div className="divide-y divide-slate-100">
             {orders.map((order) => {
               const isExpanded = expandedId === order.order_id;
 
               // Determine order type label
-              const hasAdmin = order.orderitem.some((i) => i.product.created_by_admin);
-              const hasFactory = order.orderitem.some((i) => !i.product.created_by_admin);
+              const hasAdmin = order.orderitem.some(
+                (i) => i.product.created_by_admin
+              );
+              const hasFactory = order.orderitem.some(
+                (i) => !i.product.created_by_admin
+              );
               const typeLabel =
                 hasAdmin && hasFactory
                   ? 'Mixed'
                   : hasAdmin
-                  ? 'Admin'
-                  : 'Factory';
+                    ? 'Admin'
+                    : 'Factory';
               const typeBadgeClass =
                 typeLabel === 'Mixed'
                   ? 'bg-orange-50 text-orange-700'
                   : typeLabel === 'Admin'
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'bg-purple-50 text-purple-700';
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'bg-purple-50 text-purple-700';
 
               return (
                 <div key={order.order_id}>
@@ -313,7 +383,11 @@ export default function AdminOrders() {
                   >
                     {/* Expand icon */}
                     <div className="text-slate-400">
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {isExpanded ? (
+                        <ChevronUp size={16} />
+                      ) : (
+                        <ChevronDown size={16} />
+                      )}
                     </div>
 
                     {/* Order ID + date */}
@@ -359,7 +433,9 @@ export default function AdminOrders() {
                       {order.payment ? (
                         <StatusBadge status={order.payment.payment_status} />
                       ) : (
-                        <span className="text-slate-400 text-xs">{t('noPayment')}</span>
+                        <span className="text-slate-400 text-xs">
+                          {t('noPayment')}
+                        </span>
                       )}
                     </div>
 
@@ -403,7 +479,8 @@ export default function AdminOrders() {
 
       {/* Column header hint (below the card so it doesn't crowd the header) */}
       <p className="text-xs text-slate-400 mt-3 text-center">
-        Columns: expand · order · buyer · type · total · payment · status · update
+        Columns: expand · order · buyer · type · total · payment · status ·
+        update
       </p>
     </div>
   );

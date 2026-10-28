@@ -2,30 +2,38 @@ import { Response } from 'express';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 
-export const getAllFactories = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getAllFactories = async (
+  _req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const factories = await prisma.factory.findMany({
       where: { approval_status: 'APPROVED' },
       include: {
-        user: { select: { full_name: true, email: true, phone_number: true, } },
+        user: { select: { full_name: true, email: true, phone_number: true } },
         _count: { select: { product: true } },
       },
       orderBy: { factory_name: 'asc' },
     });
     res.json({ success: true, factories });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch factories' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to fetch factories' });
   }
 };
 
-export const getFactoryById = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getFactoryById = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const factory = await prisma.factory.findUnique({
       where: { factory_id: parseInt(id) },
       include: {
         user: { select: { full_name: true, email: true, phone_number: true } },
-        products: {
+        product: {
           where: { availability_status: 'AVAILABLE' },
           include: { category: true },
           take: 12,
@@ -36,19 +44,33 @@ export const getFactoryById = async (req: AuthRequest, res: Response): Promise<v
       res.status(404).json({ success: false, message: 'Factory not found' });
       return;
     }
-    res.json({ success: true, factory });
+    const { product, ...factoryDetails } = factory;
+    res.json({
+      success: true,
+      factory: { ...factoryDetails, products: product },
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch factory' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to fetch factory' });
   }
 };
 
-export const approveFactory = async (req: AuthRequest, res: Response): Promise<void> => {
+export const approveFactory = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const { approval_status } = req.body;
 
     if (!['APPROVED', 'REJECTED'].includes(approval_status)) {
-      res.status(400).json({ success: false, message: 'Status must be APPROVED or REJECTED' });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: 'Status must be APPROVED or REJECTED',
+        });
       return;
     }
 
@@ -64,14 +86,23 @@ export const approveFactory = async (req: AuthRequest, res: Response): Promise<v
       where: { factory_id: parseInt(id) },
       data: { approval_status },
     });
-    res.json({ success: true, message: `Factory ${approval_status.toLowerCase()}`, factory });
+    res.json({
+      success: true,
+      message: `Factory ${approval_status.toLowerCase()}`,
+      factory,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update factory status' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to update factory status' });
   }
 };
 
 /** All registrations, including pending and rejected factories (Admin only). */
-export const getAdminFactories = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getAdminFactories = async (
+  _req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const factories = await prisma.factory.findMany({
       include: {
@@ -83,26 +114,40 @@ export const getAdminFactories = async (_req: AuthRequest, res: Response): Promi
     res.json({ success: true, factories });
   } catch (error) {
     console.error('GetAdminFactories error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch factories' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to fetch factories' });
   }
 };
 
-export const getPendingFactories = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getPendingFactories = async (
+  _req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const factories = await prisma.factory.findMany({
       where: { approval_status: 'PENDING' },
-      include: { user: { select: { full_name: true, email: true, phone_number: true } } },
+      include: {
+        user: { select: { full_name: true, email: true, phone_number: true } },
+      },
     });
     res.json({ success: true, factories });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch pending factories' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to fetch pending factories' });
   }
 };
 
-export const updateFactoryProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateFactoryProfile = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { factory_name, location } = req.body;
-    const factory = await prisma.factory.findUnique({ where: { user_id: req.user!.user_id } });
+    const factory = await prisma.factory.findUnique({
+      where: { user_id: req.user!.user_id },
+    });
     if (!factory) {
       res.status(404).json({ success: false, message: 'Factory not found' });
       return;
@@ -113,6 +158,8 @@ export const updateFactoryProfile = async (req: AuthRequest, res: Response): Pro
     });
     res.json({ success: true, factory: updated });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update factory profile' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to update factory profile' });
   }
 };
