@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { ShoppingCart, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/authStore';
@@ -27,6 +28,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { t } = useTranslation();
   const { user, isAuthenticated } = useAuthStore();
   const { setCart } = useCartStore();
+  const queryClient = useQueryClient();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -40,6 +42,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         quantity: 1,
       });
       setCart(res.data.cart);
+      queryClient.setQueryData(['cart'], { cart: res.data.cart });
       toast.success(t('addedToCart'));
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };

@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ShoppingCart, MessageSquare, ArrowLeft, Factory } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/api';
@@ -14,6 +14,7 @@ export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user, isAuthenticated } = useAuthStore();
   const { setCart } = useCartStore();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const { data, isLoading } = useQuery({
@@ -29,6 +30,7 @@ export default function ProductDetailPage() {
     try {
       const res = await api.post('/cart/add', { product_id: Number(id!), quantity: 1 });
       setCart(res.data.cart);
+      queryClient.setQueryData(['cart'], { cart: res.data.cart });
       toast.success(t('addedToCart'));
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
