@@ -31,13 +31,11 @@ const chapaHeaders = () => ({
 });
 const validateChapaKeys = (res: Response) => {
   if (CHAPA_SECRET_KEY && CHAPA_PUBLIC_KEY) return true;
-  res
-    .status(500)
-    .json({
-      success: false,
-      message:
-        'Chapa API keys are not configured. Please set CHAPA_SECRET_KEY and CHAPA_PUBLIC_KEY in .env',
-    });
+  res.status(500).json({
+    success: false,
+    message:
+      'Chapa API keys are not configured. Please set CHAPA_SECRET_KEY and CHAPA_PUBLIC_KEY in .env',
+  });
   return false;
 };
 
@@ -87,9 +85,8 @@ const buildSettlements = async (
   }
 
   for (const delivery of deliveries) {
-    const key = delivery.factory_id === null
-      ? 'admin'
-      : `factory:${delivery.factory_id}`;
+    const key =
+      delivery.factory_id === null ? 'admin' : `factory:${delivery.factory_id}`;
     const seller = sellerTotals.get(key);
     if (seller) seller.delivery_amount += Number(delivery.delivery_fee);
   }
@@ -191,7 +188,12 @@ const completePayment = async (txRef: string) =>
     }
 
     // Build per-seller settlement records for this order
-    await buildSettlements(tx, order.order_id, items, deliverySnapshot?.deliveries ?? []);
+    await buildSettlements(
+      tx,
+      order.order_id,
+      items,
+      deliverySnapshot?.deliveries ?? []
+    );
 
     await tx.paymentattempt.update({
       where: { transaction_reference: txRef },
@@ -295,12 +297,10 @@ export const initializePayment = async (
     }
     for (const item of cart.cartitem) {
       if (item.quantity < 1 || item.product.stock_quantity < item.quantity) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            message: `Insufficient stock for ${item.product.product_name}`,
-          });
+        res.status(400).json({
+          success: false,
+          message: `Insufficient stock for ${item.product.product_name}`,
+        });
         return;
       }
     }
@@ -312,12 +312,10 @@ export const initializePayment = async (
     }));
     const quote = await getDeliveryQuote(cart.cartitem, town, address);
     if (!quote.available) {
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: `Delivery is unavailable for ${town} from: ${quote.missing_sellers.join(', ')}`,
-        });
+      res.status(400).json({
+        success: false,
+        message: `Delivery is unavailable for ${town} from: ${quote.missing_sellers.join(', ')}`,
+      });
       return;
     }
     const amount = quote.total;
@@ -362,13 +360,10 @@ export const initializePayment = async (
       'InitializePayment error:',
       error.response?.data || error.message
     );
-    res
-      .status(500)
-      .json({
-        success: false,
-        message:
-          error.response?.data?.message || 'Failed to initialize payment',
-      });
+    res.status(500).json({
+      success: false,
+      message: error.response?.data?.message || 'Failed to initialize payment',
+    });
   }
 };
 
@@ -410,15 +405,13 @@ export const verifyPayment = async (
     });
   } catch (error: any) {
     console.error('VerifyPayment error:', error.message);
-    res
-      .status(400)
-      .json({
-        success: false,
-        message:
-          error.message === 'INSUFFICIENT_STOCK'
-            ? 'An item sold out before payment completed. Your payment will be reviewed.'
-            : 'Failed to verify payment',
-      });
+    res.status(400).json({
+      success: false,
+      message:
+        error.message === 'INSUFFICIENT_STOCK'
+          ? 'An item sold out before payment completed. Your payment will be reviewed.'
+          : 'Failed to verify payment',
+    });
   }
 };
 

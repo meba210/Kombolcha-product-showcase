@@ -554,6 +554,9 @@ const resources = {
 
       // ── Common ────────────────────────────────────────────
       search: 'Search',
+      searchThisTable: 'Search this table...',
+      allTableFilters: 'All {{filter}}',
+      tableResultRange: '{{start}}–{{end}} of {{total}} results',
       filter: 'Filter',
       save: 'Save',
       cancel: 'Cancel',
@@ -1300,6 +1303,9 @@ const resources = {
 
       // ── Common ────────────────────────────────────────────
       search: 'ፈልግ',
+      searchThisTable: 'በዚህ ሰንጠረዥ ውስጥ ይፈልጉ...',
+      allTableFilters: 'ሁሉም {{filter}}',
+      tableResultRange: '{{total}} ውጤቶች፤ {{start}}–{{end}}',
       filter: 'አጣራ',
       save: 'አስቀምጥ',
       open: 'ክፍት',

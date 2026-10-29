@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { PageLoader } from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
 import { useTranslation } from 'react-i18next';
+import TableControls, { TablePagination, useTableControls } from '../../components/TableControls';
 
 export default function AdminProducts() {
   const { t } = useTranslation();
@@ -40,10 +41,12 @@ export default function AdminProducts() {
 
   const adminProducts = productsData?.products?.filter(
     (product: any) => product.created_by_admin
-  );
+  ) ?? [];
   const factoryProducts = productsData?.products?.filter(
     (product: any) => !product.created_by_admin
-  );
+  ) ?? [];
+  const adminTable = useTableControls(adminProducts, (product: any) => `${product.product_name} ${product.category?.category_name ?? ''} ${product.availability_status}`, (product: any) => product.availability_status);
+  const factoryTable = useTableControls(factoryProducts, (product: any) => `${product.product_name} ${product.category?.category_name ?? ''} ${product.factory?.factory_name ?? ''} ${product.availability_status}`, (product: any) => product.availability_status);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -130,6 +133,7 @@ export default function AdminProducts() {
               {t('adminProductsDesc')}
             </p>
           </div>
+          <TableControls search={adminTable.search} onSearchChange={adminTable.setSearch} filter={adminTable.filter} onFilterChange={adminTable.setFilter} filterLabel="status" filterOptions={['AVAILABLE', 'OUT_OF_STOCK', 'DISCONTINUED'].map((status) => ({ value: status, label: t(status.toLowerCase()) }))} page={adminTable.page} totalPages={adminTable.totalPages} totalItems={adminTable.totalItems} onPageChange={adminTable.setPage} />
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-100">
@@ -155,7 +159,7 @@ export default function AdminProducts() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {adminProducts?.map((product: any) => (
+                {adminTable.pageItems.map((product: any) => (
                   <tr key={product.product_id} className="hover:bg-slate-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -218,11 +222,12 @@ export default function AdminProducts() {
               </tbody>
             </table>
           </div>
-          {!adminProducts?.length && (
+          {adminTable.totalItems === 0 && (
             <div className="text-center py-10 text-slate-400">
               {t('noAdminProducts')}
             </div>
           )}
+          <TablePagination page={adminTable.page} totalPages={adminTable.totalPages} totalItems={adminTable.totalItems} onPageChange={adminTable.setPage} />
         </div>
 
         <div className="card overflow-hidden">
@@ -234,6 +239,7 @@ export default function AdminProducts() {
               {t('factoryProductsDesc')}
             </p>
           </div>
+          <TableControls search={factoryTable.search} onSearchChange={factoryTable.setSearch} filter={factoryTable.filter} onFilterChange={factoryTable.setFilter} filterLabel="status" filterOptions={['AVAILABLE', 'OUT_OF_STOCK', 'DISCONTINUED'].map((status) => ({ value: status, label: t(status.toLowerCase()) }))} page={factoryTable.page} totalPages={factoryTable.totalPages} totalItems={factoryTable.totalItems} onPageChange={factoryTable.setPage} />
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-100">
@@ -259,7 +265,7 @@ export default function AdminProducts() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {factoryProducts?.map((product: any) => (
+                {factoryTable.pageItems.map((product: any) => (
                   <tr key={product.product_id} className="hover:bg-slate-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -322,11 +328,12 @@ export default function AdminProducts() {
               </tbody>
             </table>
           </div>
-          {!factoryProducts?.length && (
+          {factoryTable.totalItems === 0 && (
             <div className="text-center py-10 text-slate-400">
               No factory-created products available.
             </div>
           )}
+          <TablePagination page={factoryTable.page} totalPages={factoryTable.totalPages} totalItems={factoryTable.totalItems} onPageChange={factoryTable.setPage} />
         </div>
       </div>
 

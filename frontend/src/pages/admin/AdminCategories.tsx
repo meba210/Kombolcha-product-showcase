@@ -5,6 +5,7 @@ import api from '../../lib/api';
 import toast from 'react-hot-toast';
 import { PageLoader } from '../../components/LoadingSpinner';
 import { useTranslation } from 'react-i18next';
+import TableControls, { TablePagination, useTableControls } from '../../components/TableControls';
 
 export default function AdminCategories() {
   const { t } = useTranslation();
@@ -17,6 +18,11 @@ export default function AdminCategories() {
     queryKey: ['categories'],
     queryFn: () => api.get('/categories').then((r) => r.data),
   });
+  const categories = data?.categories ?? [];
+  const table = useTableControls(
+    categories,
+    (category: any) => `${category.category_name} ${category.description ?? ''}`
+  );
 
   const saveMutation = useMutation({
     mutationFn: () => editId
@@ -54,8 +60,9 @@ export default function AdminCategories() {
         </button>
       </div>
 
+      <TableControls search={table.search} onSearchChange={table.setSearch} page={table.page} totalPages={table.totalPages} totalItems={table.totalItems} onPageChange={table.setPage} />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data?.categories?.map((cat: { category_id: number; category_name: string; description: string | null; _count: { products: number } }) => (
+        {table.pageItems.map((cat: { category_id: number; category_name: string; description: string | null; _count: { products: number } }) => (
           <div key={cat.category_id} className="card p-5">
             <div className="flex items-start justify-between mb-3">
               <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-xl">
@@ -76,6 +83,8 @@ export default function AdminCategories() {
           </div>
         ))}
       </div>
+      {table.totalItems === 0 && <p className="py-10 text-center text-slate-400">{t('noResults')}</p>}
+      <TablePagination page={table.page} totalPages={table.totalPages} totalItems={table.totalItems} onPageChange={table.setPage} />
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

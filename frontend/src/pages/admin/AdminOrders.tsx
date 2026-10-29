@@ -6,6 +6,9 @@ import { PageLoader } from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import TableControls, { TablePagination, useTableControls } from '../../components/TableControls';
+
+const ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -242,6 +245,12 @@ export default function AdminOrders() {
         )
         .then((r) => r.data),
   });
+  const orders: Order[] = data?.orders ?? [];
+  const table = useTableControls(
+    orders,
+    (order) => `${order.order_id} ${order.buyer.user.full_name} ${order.buyer.user.email} ${order.order_status}`,
+    (order) => order.order_status
+  );
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
@@ -253,8 +262,6 @@ export default function AdminOrders() {
   });
 
   if (isLoading) return <PageLoader />;
-
-  const orders: Order[] = data?.orders ?? [];
 
   // Stats
   const adminOnlyOrders = orders.filter((o) =>
@@ -291,7 +298,7 @@ export default function AdminOrders() {
           className="input-field text-sm py-1.5 w-40"
         >
           <option value="">{t('allStatuses')}</option>
-          {['PENDING', 'CONFIRMED', 'DELIVERED', 'CANCELLED'].map((s) => (
+          {ORDER_STATUSES.map((s) => (
             <option key={s} value={s}>
               {t(s.toLowerCase())}
             </option>
@@ -345,13 +352,26 @@ export default function AdminOrders() {
           </div>
         </div>
 
-        {orders.length === 0 ? (
+        <TableControls
+          search={table.search}
+          onSearchChange={table.setSearch}
+          filter={table.filter}
+          onFilterChange={table.setFilter}
+          filterLabel="status"
+          filterOptions={ORDER_STATUSES.map((status) => ({ value: status, label: t(status.toLowerCase()) }))}
+          page={table.page}
+          totalPages={table.totalPages}
+          totalItems={table.totalItems}
+          onPageChange={table.setPage}
+        />
+
+        {table.totalItems === 0 ? (
           <div className="text-center py-14 text-slate-400">
             {t('noOrdersFound')}
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {orders.map((order) => {
+            {table.pageItems.map((order) => {
               const isExpanded = expandedId === order.order_id;
 
               // Determine order type label
@@ -457,7 +477,7 @@ export default function AdminOrders() {
                         }
                         className="input-field text-sm py-1.5 w-32"
                       >
-                        {['PENDING', 'CONFIRMED', 'DELIVERED', 'CANCELLED'].map(
+                        {ORDER_STATUSES.map(
                           (s) => (
                             <option key={s} value={s}>
                               {t(s.toLowerCase())}
@@ -475,6 +495,7 @@ export default function AdminOrders() {
             })}
           </div>
         )}
+        <TablePagination page={table.page} totalPages={table.totalPages} totalItems={table.totalItems} onPageChange={table.setPage} />
       </div>
 
       {/* Column header hint (below the card so it doesn't crowd the header) */}

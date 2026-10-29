@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { PageLoader } from '../../components/LoadingSpinner';
 import { useTranslation } from 'react-i18next';
 import StatusBadge from '../../components/StatusBadge';
+import TableControls, { TablePagination, useTableControls } from '../../components/TableControls';
 
 interface ProductForm {
   product_name: string;
@@ -42,6 +43,12 @@ export default function FactoryProducts() {
     queryKey: ['categories'],
     queryFn: () => api.get('/categories').then((r) => r.data),
   });
+  const products = productsData?.products ?? [];
+  const table = useTableControls(
+    products,
+    (product: any) => `${product.product_name} ${product.category.category_name} ${product.availability_status}`,
+    (product: any) => product.availability_status
+  );
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -111,6 +118,18 @@ export default function FactoryProducts() {
         <PageLoader />
       ) : (
         <div className="card overflow-hidden">
+          <TableControls
+            search={table.search}
+            onSearchChange={table.setSearch}
+            filter={table.filter}
+            onFilterChange={table.setFilter}
+            filterLabel="status"
+            filterOptions={['AVAILABLE', 'OUT_OF_STOCK', 'DISCONTINUED'].map((status) => ({ value: status, label: t(status.toLowerCase()) }))}
+            page={table.page}
+            totalPages={table.totalPages}
+            totalItems={table.totalItems}
+            onPageChange={table.setPage}
+          />
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
@@ -123,7 +142,7 @@ export default function FactoryProducts() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {productsData?.products?.map((product: {
+              {table.pageItems.map((product: {
                 product_id: number;
                 product_name: string;
                 description: string | null;
@@ -168,9 +187,10 @@ export default function FactoryProducts() {
               ))}
             </tbody>
           </table>
-          {productsData?.products?.length === 0 && (
+          {table.totalItems === 0 && (
             <div className="text-center py-12 text-slate-400">{t('noProductsYet')}</div>
           )}
+          <TablePagination page={table.page} totalPages={table.totalPages} totalItems={table.totalItems} onPageChange={table.setPage} />
         </div>
       )}
 

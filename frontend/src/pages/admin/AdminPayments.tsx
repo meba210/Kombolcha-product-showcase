@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { PageLoader } from '../../components/LoadingSpinner';
 import StatusBadge from '../../components/StatusBadge';
+import TableControls, { TablePagination, useTableControls } from '../../components/TableControls';
 import { useTranslation } from 'react-i18next';
 
 export default function AdminPayments() {
@@ -11,12 +12,47 @@ export default function AdminPayments() {
     queryFn: () => api.get('/payments?limit=50').then((r) => r.data),
   });
 
+  type PaymentRow = {
+    payment_id: number;
+    transaction_reference: string;
+    amount: number;
+    payment_method: string;
+    payment_status: string;
+    settlement_status: string;
+    payment_date: string;
+    order: { buyer: { user: { full_name: string } } };
+  };
+  const payments: PaymentRow[] = data?.payments ?? [];
+  const table = useTableControls(
+    payments,
+    (payment) => `${payment.transaction_reference} ${payment.order.buyer.user.full_name} ${payment.payment_method}`,
+    (payment) => [
+      `payment:${payment.payment_status}`,
+      `settlement:${payment.settlement_status}`,
+    ]
+  );
+
   if (isLoading) return <PageLoader />;
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-slate-900 mb-6">{t('paymentManagement')}</h1>
       <div className="card overflow-hidden">
+        <TableControls
+          search={table.search}
+          onSearchChange={table.setSearch}
+          filter={table.filter}
+          onFilterChange={table.setFilter}
+          filterLabel="status"
+          filterOptions={[
+            ...['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'].map((status) => ({ value: `payment:${status}`, label: `Payment · ${t(status.toLowerCase())}` })),
+            ...['PENDING', 'CALCULATED', 'SETTLED', 'UNSETTLED', 'PAID'].map((status) => ({ value: `settlement:${status}`, label: `Settlement · ${t(status.toLowerCase())}` })),
+          ]}
+          page={table.page}
+          totalPages={table.totalPages}
+          totalItems={table.totalItems}
+          onPageChange={table.setPage}
+        />
         <table className="w-full">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr>
@@ -30,16 +66,7 @@ export default function AdminPayments() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {data?.payments?.map((payment: {
-              payment_id: number;
-              transaction_reference: string;
-              amount: number;
-              payment_method: string;
-              payment_status: string;
-              settlement_status: string;
-              payment_date: string;
-              order: { buyer: { user: { full_name: string } } };
-            }) => (
+            {table.pageItems.map((payment) => (
               <tr key={payment.payment_id} className="hover:bg-slate-50">
                 <td className="px-6 py-4">
                   <p className="font-mono text-xs text-slate-600 truncate max-w-32">{payment.transaction_reference}</p>
@@ -54,9 +81,10 @@ export default function AdminPayments() {
             ))}
           </tbody>
         </table>
-        {data?.payments?.length === 0 && (
+        {table.totalItems === 0 && (
           <div className="text-center py-12 text-slate-400">{t('noPaymentsYet')}</div>
         )}
+        <TablePagination page={table.page} totalPages={table.totalPages} totalItems={table.totalItems} onPageChange={table.setPage} />
       </div>
     </div>
   );
