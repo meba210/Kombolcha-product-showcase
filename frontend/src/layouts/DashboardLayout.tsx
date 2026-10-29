@@ -15,6 +15,7 @@ import {
   ChevronRight,
   SunMedium,
   MoonStar,
+  Truck,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
@@ -32,6 +33,7 @@ const factoryNav = [
   { to: '/factory/messages', labelKey: 'messages', icon: MessageSquare },
   { to: '/factory/reports', labelKey: 'reports', icon: BarChart3 },
   { to: '/factory/profile', labelKey: 'profile', icon: User },
+  { to: '/factory/delivery', labelKey: 'deliveryManagement', icon: Truck },
 ];
 
 const adminNav = [
@@ -42,6 +44,7 @@ const adminNav = [
   { to: '/admin/users', labelKey: 'users', icon: Users },
   { to: '/admin/factories', labelKey: 'factories', icon: Factory },
   { to: '/admin/categories', labelKey: 'categories', icon: Tag },
+  { to: '/admin/delivery', labelKey: 'deliveryManagement', icon: Truck },
   { to: '/admin/messages', labelKey: 'messages', icon: MessageSquare },
 ];
 

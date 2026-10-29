@@ -44,6 +44,7 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminFactories from './pages/admin/AdminFactories';
 import AdminPayments from './pages/admin/AdminPayments';
 import AdminCategories from './pages/admin/AdminCategories';
+import DeliveryManagementPage from './pages/DeliveryManagementPage';
 
 // Guards
 const ProtectedRoute = ({
@@ -189,6 +190,10 @@ export default function App() {
         <Route path="messages" element={<MessagesPage />} />
         <Route path="reports" element={<FactoryReports />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route
+          path="delivery"
+          element={<DeliveryManagementPage role="FACTORY" />}
+        />
       </Route>
 
       {/* Admin Dashboard */}
@@ -207,6 +212,10 @@ export default function App() {
         <Route path="factories" element={<AdminFactories />} />
         <Route path="payments" element={<AdminPayments />} />
         <Route path="categories" element={<AdminCategories />} />
+        <Route
+          path="delivery"
+          element={<DeliveryManagementPage role="ADMIN" />}
+        />
         <Route path="messages" element={<MessagesPage />} />
       </Route>
 

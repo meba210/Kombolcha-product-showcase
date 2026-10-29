@@ -15,6 +15,7 @@ import userRoutes from './routes/user.routes';
 import reportRoutes from './routes/report.routes';
 import factoryRoutes from './routes/factory.routes';
 import uploadRoutes from './routes/upload';
+import deliveryRoutes from './routes/delivery.routes';
 
 dotenv.config();
 
@@ -46,6 +47,7 @@ app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/factories', factoryRoutes);
+app.use('/api/delivery', deliveryRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────

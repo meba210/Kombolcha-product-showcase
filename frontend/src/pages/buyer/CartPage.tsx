@@ -76,6 +76,7 @@ export default function CartPage() {
   const { setCart } = useCartStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [pendingRemove, setPendingRemove] = useState<{
     id: number;
@@ -94,9 +95,10 @@ export default function CartPage() {
     setUpdatingId(itemId);
     try {
       const res = await api.put(`/cart/item/${itemId}`, { quantity });
-      // update both the query cache and the zustand store
-      queryClient.setQueryData(['cart'], { cart: res.data.cart });
-      setCart(res.data.cart);
+      const nextCart = res.data?.cart ?? res.data;
+      queryClient.setQueryData(['cart'], { cart: nextCart });
+      setCart(nextCart);
+      queryClient.setQueryData(['cart'], nextCart ? { cart: nextCart } : undefined);
     } catch {
       toast.error(t('failedUpdateQuantity'));
     } finally {
@@ -108,8 +110,10 @@ export default function CartPage() {
     if (!pendingRemove) return;
     try {
       const res = await api.delete(`/cart/item/${pendingRemove.id}`);
-      queryClient.setQueryData(['cart'], { cart: res.data.cart });
-      setCart(res.data.cart);
+      const nextCart = res.data?.cart ?? res.data;
+      queryClient.setQueryData(['cart'], { cart: nextCart });
+      setCart(nextCart);
+      queryClient.setQueryData(['cart'], nextCart ? { cart: nextCart } : undefined);
       toast.success(t('itemRemoved'));
     } catch {
       toast.error(t('failedRemoveItem'));
@@ -299,7 +303,9 @@ export default function CartPage() {
               </div>
               <div className="flex justify-between text-sm text-slate-600">
                 <span>{t('delivery')}</span>
-                <span className="text-green-600 font-medium">{t('free')}</span>
+                <span className="text-slate-500 font-medium">
+                  {t('deliveryCalculatedAtCheckout')}
+                </span>
               </div>
               <div className="border-t border-slate-100 pt-3 flex justify-between font-bold text-slate-900">
                 <span>{t('total')}</span>

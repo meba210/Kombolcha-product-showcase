@@ -7,14 +7,21 @@ import StatusBadge from '../../components/StatusBadge';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
-const ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
-const COMMISSION_RATE = 0.10;
+const ORDER_STATUSES = [
+  'PENDING',
+  'CONFIRMED',
+  'SHIPPED',
+  'DELIVERED',
+  'CANCELLED',
+];
+const COMMISSION_RATE = 0.1;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SettlementRow {
   settlement_id: number;
   gross_amount: number;
+  delivery_amount: number;
   commission_rate: number;
   commission_amount: number;
   net_amount: number;
@@ -44,6 +51,11 @@ interface Order {
   payment: { payment_status: string } | null;
   orderitem: OrderItem[];
   settlement: SettlementRow[]; // filtered to this factory only by the backend
+  orderdelivery: {
+    factory_id: number | null;
+    delivery_fee: number;
+    provider_type: string;
+  }[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -64,6 +76,7 @@ function calcBreakdown(order: Order) {
     const s = order.settlement[0];
     return {
       gross: Number(s.gross_amount),
+      delivery: Number(s.delivery_amount),
       commission: Number(s.commission_amount),
       net: Number(s.net_amount),
       rate: Number(s.commission_rate),
@@ -73,11 +86,16 @@ function calcBreakdown(order: Order) {
   }
   // Derive from order items (for orders before settlement feature was added)
   const gross = myItems(order).reduce((sum, i) => sum + i.subtotal, 0);
-  const commission = gross * COMMISSION_RATE;
+  const factoryId = myItems(order)[0]?.product.factory?.factory_id;
+  const delivery = order.orderdelivery
+    .filter((line) => line.factory_id === factoryId)
+    .reduce((sum, line) => sum + Number(line.delivery_fee), 0);
+  const commission = (gross + delivery) * COMMISSION_RATE;
   return {
     gross,
+    delivery,
     commission,
-    net: gross - commission,
+    net: gross + delivery - commission,
     rate: COMMISSION_RATE,
     fromSettlement: false,
     status: 'CALCULATED',
@@ -91,7 +109,14 @@ function OrderBreakdown({ order }: { order: Order }) {
   const items = myItems(order);
   const bd = calcBreakdown(order);
   const buyerPaid = Number(order.total_amount);
-  const otherSellers = buyerPaid - bd.gross;
+  const totalDeliveryFees = order.orderdelivery.reduce(
+    (sum, delivery) => sum + Number(delivery.delivery_fee),
+    0
+  );
+  const ownDeliveryFee = order.orderdelivery
+    .filter((delivery) => delivery.factory_id === items[0]?.product.factory?.factory_id)
+    .reduce((sum, delivery) => sum + Number(delivery.delivery_fee), 0);
+  const otherSellers = Math.max(0, buyerPaid - bd.gross - totalDeliveryFees);
 
   return (
     <div className="bg-slate-50 border-t border-slate-100 px-6 py-5">
@@ -136,7 +161,9 @@ function OrderBreakdown({ order }: { order: Order }) {
       <div className="bg-white border border-slate-100 rounded-xl overflow-hidden">
         {/* Full buyer payment context */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
-          <span className="text-sm text-slate-500">{t('buyerPaidEntireOrder')}</span>
+          <span className="text-sm text-slate-500">
+            {t('buyerPaidEntireOrder')}
+          </span>
           <span className="text-sm font-semibold text-slate-700">
             ETB {buyerPaid.toLocaleString()}
           </span>
@@ -149,6 +176,15 @@ function OrderBreakdown({ order }: { order: Order }) {
             </span>
             <span className="text-sm text-slate-400">
               − ETB {otherSellers.toLocaleString()}
+            </span>
+          </div>
+        )}
+
+        {ownDeliveryFee > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+            <span className="text-sm text-slate-500">{t('deliveryFees')}</span>
+            <span className="text-sm font-medium text-slate-700">
+              ETB {ownDeliveryFee.toLocaleString()}
             </span>
           </div>
         )}
@@ -209,7 +245,9 @@ export default function FactoryOrders() {
     queryKey: ['factory-orders', statusFilter],
     queryFn: () =>
       api
-        .get(`/orders?limit=100${statusFilter ? `&status=${statusFilter}` : ''}`)
+        .get(
+          `/orders?limit=100${statusFilter ? `&status=${statusFilter}` : ''}`
+        )
         .then((r) => r.data),
   });
 
@@ -229,7 +267,10 @@ export default function FactoryOrders() {
 
   // Aggregate totals for the summary bar
   const totalGross = orders.reduce((sum, o) => sum + calcBreakdown(o).gross, 0);
-  const totalCommission = orders.reduce((sum, o) => sum + calcBreakdown(o).commission, 0);
+  const totalCommission = orders.reduce(
+    (sum, o) => sum + calcBreakdown(o).commission,
+    0
+  );
   const totalNet = orders.reduce((sum, o) => sum + calcBreakdown(o).net, 0);
 
   const toggle = (id: number) =>
@@ -239,9 +280,12 @@ export default function FactoryOrders() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{t('myOrdersTitle')}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {t('myOrdersTitle')}
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Orders that contain your products. Click a row to see your revenue split.
+            Orders that contain your products. Click a row to see your revenue
+            split.
           </p>
         </div>
         <select
@@ -251,7 +295,9 @@ export default function FactoryOrders() {
         >
           <option value="">{t('allStatuses')}</option>
           {ORDER_STATUSES.map((s) => (
-            <option key={s} value={s}>{t(s.toLowerCase())}</option>
+            <option key={s} value={s}>
+              {t(s.toLowerCase())}
+            </option>
           ))}
         </select>
       </div>
@@ -266,7 +312,9 @@ export default function FactoryOrders() {
             </p>
           </div>
           <div className="card p-4 border-orange-100">
-            <p className="text-xs text-orange-600 mb-1">{t('platformCommission')}</p>
+            <p className="text-xs text-orange-600 mb-1">
+              {t('platformCommission')}
+            </p>
             <p className="text-xl font-bold text-orange-600">
               − ETB {totalCommission.toLocaleString()}
             </p>
@@ -289,7 +337,9 @@ export default function FactoryOrders() {
         </div>
 
         {orders.length === 0 ? (
-          <div className="text-center py-14 text-slate-400">{t('noOrdersYet')}</div>
+          <div className="text-center py-14 text-slate-400">
+            {t('noOrdersYet')}
+          </div>
         ) : (
           <div className="divide-y divide-slate-100">
             {orders.map((order) => {
@@ -345,9 +395,7 @@ export default function FactoryOrders() {
                       <p className="font-bold text-sm text-green-700">
                         ETB {bd.net.toLocaleString()}
                       </p>
-                      <p className="text-xs text-slate-400">
-                        your net
-                      </p>
+                      <p className="text-xs text-slate-400">your net</p>
                     </div>
 
                     {/* Payment status */}
@@ -355,7 +403,9 @@ export default function FactoryOrders() {
                       {order.payment ? (
                         <StatusBadge status={order.payment.payment_status} />
                       ) : (
-                        <span className="text-xs text-slate-400">{t('noPayment')}</span>
+                        <span className="text-xs text-slate-400">
+                          {t('noPayment')}
+                        </span>
                       )}
                     </div>
 
@@ -375,7 +425,9 @@ export default function FactoryOrders() {
                         className="input-field text-sm py-1.5 w-32"
                       >
                         {ORDER_STATUSES.map((s) => (
-                          <option key={s} value={s}>{t(s.toLowerCase())}</option>
+                          <option key={s} value={s}>
+                            {t(s.toLowerCase())}
+                          </option>
                         ))}
                       </select>
                     </div>
