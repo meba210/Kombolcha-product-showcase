@@ -3,34 +3,56 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { DeliveryQuoteLine, getDeliveryQuote } from '../lib/delivery.service';
 
 const CHAPA_BASE_URL = process.env.CHAPA_BASE_URL || 'https://api.chapa.co/v1';
 const CHAPA_SECRET_KEY = process.env.CHAPA_SECRET_KEY || '';
 const CHAPA_PUBLIC_KEY = process.env.CHAPA_PUBLIC_KEY || '';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:5000';
-const CHAPA_CALLBACK_URL = process.env.CHAPA_CALLBACK_URL || `${SERVER_URL}/api/payments/callback`;
+const CHAPA_CALLBACK_URL =
+  process.env.CHAPA_CALLBACK_URL || `${SERVER_URL}/api/payments/callback`;
 
-type CartSnapshotItem = { product_id: number; quantity: number; price: number; subtotal: number };
+type CartSnapshotItem = {
+  product_id: number;
+  quantity: number;
+  price: number;
+  subtotal: number;
+};
+type DeliverySnapshot = {
+  town: string;
+  address: string;
+  deliveries: DeliveryQuoteLine[];
+};
 
-const chapaHeaders = () => ({ Authorization: `Bearer ${CHAPA_SECRET_KEY}`, 'Content-Type': 'application/json' });
+const chapaHeaders = () => ({
+  Authorization: `Bearer ${CHAPA_SECRET_KEY}`,
+  'Content-Type': 'application/json',
+});
 const validateChapaKeys = (res: Response) => {
   if (CHAPA_SECRET_KEY && CHAPA_PUBLIC_KEY) return true;
-  res.status(500).json({ success: false, message: 'Chapa API keys are not configured. Please set CHAPA_SECRET_KEY and CHAPA_PUBLIC_KEY in .env' });
+  res
+    .status(500)
+    .json({
+      success: false,
+      message:
+        'Chapa API keys are not configured. Please set CHAPA_SECRET_KEY and CHAPA_PUBLIC_KEY in .env',
+    });
   return false;
 };
 
-const COMMISSION_RATE = 0.10; // 10% platform commission on factory products
+const COMMISSION_RATE = 0.1; // 10% platform commission on factory products and their delivery fees
 
 /**
- * Builds per-seller settlement rows from the order items.
- * - Factory products: 10% commission deducted, factory receives 90%.
+ * Builds per-seller settlement rows from order items and delivery fees.
+ * - Factory products and their delivery fees: 10% commission deducted, factory receives 90%.
  * - Admin products:   no commission (platform owns these directly), net = gross.
  */
 const buildSettlements = async (
   tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
   orderId: number,
   items: CartSnapshotItem[],
+  deliveries: DeliveryQuoteLine[]
 ) => {
   // Fetch product ownership info for all items in one query
   const products = await tx.product.findMany({
@@ -41,33 +63,51 @@ const buildSettlements = async (
   const productMap = new Map(products.map((p) => [p.product_id, p]));
 
   // Group item subtotals by seller key: "factory:<id>" or "admin"
-  const sellerTotals = new Map<string, { factory_id: number | null; gross: number }>();
+  const sellerTotals = new Map<
+    string,
+    { factory_id: number | null; gross: number; delivery_amount: number }
+  >();
 
   for (const item of items) {
     const product = productMap.get(item.product_id);
     if (!product) continue;
 
-    const key = product.factory_id ? `factory:${product.factory_id}` : 'admin';
+    const factoryId = product.created_by_admin ? null : product.factory_id;
+    const key = factoryId ? `factory:${factoryId}` : 'admin';
     const existing = sellerTotals.get(key);
     if (existing) {
       existing.gross += item.subtotal;
     } else {
-      sellerTotals.set(key, { factory_id: product.factory_id ?? null, gross: item.subtotal });
+      sellerTotals.set(key, {
+        factory_id: factoryId ?? null,
+        gross: item.subtotal,
+        delivery_amount: 0,
+      });
     }
+  }
+
+  for (const delivery of deliveries) {
+    const key = delivery.factory_id === null
+      ? 'admin'
+      : `factory:${delivery.factory_id}`;
+    const seller = sellerTotals.get(key);
+    if (seller) seller.delivery_amount += Number(delivery.delivery_fee);
   }
 
   // Create one settlement row per seller
   for (const [, seller] of sellerTotals) {
     const isFactory = seller.factory_id !== null;
     const rate = isFactory ? COMMISSION_RATE : 0;
-    const commission = seller.gross * rate;
-    const net = seller.gross - commission;
+    const commissionBase = seller.gross + seller.delivery_amount;
+    const commission = commissionBase * rate;
+    const net = commissionBase - commission;
 
     await tx.settlement.create({
       data: {
         order_id: orderId,
         factory_id: seller.factory_id,
         gross_amount: seller.gross,
+        delivery_amount: seller.delivery_amount,
         commission_rate: rate,
         commission_amount: commission,
         net_amount: net,
@@ -78,156 +118,385 @@ const buildSettlements = async (
 };
 
 /** Commits the order only after Chapa has confirmed the transaction. */
-const completePayment = async (txRef: string) => prisma.$transaction(async (tx) => {
-  const attempt = await tx.paymentattempt.findUnique({ where: { transaction_reference: txRef } });
-  if (!attempt) throw new Error('PAYMENT_ATTEMPT_NOT_FOUND');
-
-  // Verification can be called by both Chapa and the return page. Keep it idempotent.
-  if (attempt.payment_status === 'COMPLETED') {
-    const payment = await tx.payment.findFirst({ where: { transaction_reference: txRef } });
-    return { orderId: payment?.order_id, alreadyCompleted: true };
-  }
-
-  const items = attempt.cart_snapshot as unknown as CartSnapshotItem[];
-  if (!Array.isArray(items) || items.length === 0) throw new Error('INVALID_PAYMENT_SNAPSHOT');
-
-  // Atomically reserve stock at the point we actually accept payment.
-  for (const item of items) {
-    const result = await tx.product.updateMany({
-      where: { product_id: item.product_id, stock_quantity: { gte: item.quantity } },
-      data: { stock_quantity: { decrement: item.quantity } },
+const completePayment = async (txRef: string) =>
+  prisma.$transaction(async (tx) => {
+    const attempt = await tx.paymentattempt.findUnique({
+      where: { transaction_reference: txRef },
     });
-    if (result.count !== 1) throw new Error('INSUFFICIENT_STOCK');
-  }
+    if (!attempt) throw new Error('PAYMENT_ATTEMPT_NOT_FOUND');
 
-  const order = await tx.order.create({
-    data: {
-      buyer_id: attempt.buyer_id,
-      total_amount: attempt.amount,
-      order_status: 'CONFIRMED',
-      orderitem: { create: items.map((item) => ({ ...item })) },
-      payment: { create: {
-        amount: attempt.amount,
-        payment_status: 'COMPLETED',
-        transaction_reference: txRef,
-        settlement_status: 'SETTLED',
-        payment_method: 'CHAPA',
-      } },
-    },
+    // Verification can be called by both Chapa and the return page. Keep it idempotent.
+    if (attempt.payment_status === 'COMPLETED') {
+      const payment = await tx.payment.findFirst({
+        where: { transaction_reference: txRef },
+      });
+      return { orderId: payment?.order_id, alreadyCompleted: true };
+    }
+
+    const items = (
+      typeof attempt.cart_snapshot === 'string'
+        ? JSON.parse(attempt.cart_snapshot)
+        : attempt.cart_snapshot
+    ) as CartSnapshotItem[];
+    if (!Array.isArray(items) || items.length === 0)
+      throw new Error('INVALID_PAYMENT_SNAPSHOT');
+    const deliverySnapshot = attempt.delivery_snapshot
+      ? (JSON.parse(attempt.delivery_snapshot) as DeliverySnapshot)
+      : null;
+
+    // Atomically reserve stock at the point we actually accept payment.
+    for (const item of items) {
+      const result = await tx.product.updateMany({
+        where: {
+          product_id: item.product_id,
+          stock_quantity: { gte: item.quantity },
+        },
+        data: { stock_quantity: { decrement: item.quantity } },
+      });
+      if (result.count !== 1) throw new Error('INSUFFICIENT_STOCK');
+    }
+
+    const order = await tx.order.create({
+      data: {
+        buyer_id: attempt.buyer_id,
+        total_amount: attempt.amount,
+        order_status: 'CONFIRMED',
+        orderitem: { create: items.map((item) => ({ ...item })) },
+        payment: {
+          create: {
+            amount: attempt.amount,
+            payment_status: 'COMPLETED',
+            transaction_reference: txRef,
+            settlement_status: 'SETTLED',
+            payment_method: 'CHAPA',
+          },
+        },
+      },
+    });
+
+    for (const delivery of deliverySnapshot?.deliveries ?? []) {
+      await tx.orderdelivery.create({
+        data: {
+          order_id: order.order_id,
+          factory_id: delivery.factory_id,
+          provider_type: delivery.provider_type,
+          seller_name: delivery.seller_name,
+          town: delivery.town,
+          address: delivery.address,
+          delivery_fee: delivery.delivery_fee,
+          status: 'PENDING',
+          tracking_code: `DLV-${uuidv4()}`,
+        },
+      });
+    }
+
+    // Build per-seller settlement records for this order
+    await buildSettlements(tx, order.order_id, items, deliverySnapshot?.deliveries ?? []);
+
+    await tx.paymentattempt.update({
+      where: { transaction_reference: txRef },
+      data: { payment_status: 'COMPLETED' },
+    });
+
+    // The cart may have changed while the buyer was at Chapa. Remove only the
+    // quantities paid for and retain any newer items/quantities.
+    const cart = await tx.cart.findFirst({
+      where: { buyer_id: attempt.buyer_id },
+    });
+    if (cart) {
+      for (const item of items) {
+        const cartItem = await tx.cartitem.findFirst({
+          where: { cart_id: cart.cart_id, product_id: item.product_id },
+        });
+        if (!cartItem) continue;
+        if (cartItem.quantity <= item.quantity) {
+          await tx.cartitem.delete({
+            where: { cart_item_id: cartItem.cart_item_id },
+          });
+        } else {
+          const remainingQuantity = cartItem.quantity - item.quantity;
+          await tx.cartitem.update({
+            where: { cart_item_id: cartItem.cart_item_id },
+            data: {
+              quantity: remainingQuantity,
+              subtotal: remainingQuantity * item.price,
+            },
+          });
+        }
+      }
+      const remaining = await tx.cartitem.findMany({
+        where: { cart_id: cart.cart_id },
+      });
+      await tx.cart.update({
+        where: { cart_id: cart.cart_id },
+        data: {
+          total_price: remaining.reduce((sum, item) => sum + item.subtotal, 0),
+        },
+      });
+    }
+    return { orderId: order.order_id, alreadyCompleted: false };
   });
 
-  // Build per-seller settlement records for this order
-  await buildSettlements(tx, order.order_id, items);
-
-  await tx.paymentattempt.update({ where: { transaction_reference: txRef }, data: { payment_status: 'COMPLETED' } });
-
-  // The cart may have changed while the buyer was at Chapa. Remove only the
-  // quantities paid for and retain any newer items/quantities.
-  const cart = await tx.cart.findFirst({ where: { buyer_id: attempt.buyer_id } });
-  if (cart) {
-    for (const item of items) {
-      const cartItem = await tx.cartitem.findFirst({ where: { cart_id: cart.cart_id, product_id: item.product_id } });
-      if (!cartItem) continue;
-      if (cartItem.quantity <= item.quantity) {
-        await tx.cartitem.delete({ where: { cart_item_id: cartItem.cart_item_id } });
-      } else {
-        const remainingQuantity = cartItem.quantity - item.quantity;
-        await tx.cartitem.update({ where: { cart_item_id: cartItem.cart_item_id }, data: { quantity: remainingQuantity, subtotal: remainingQuantity * item.price } });
-      }
-    }
-    const remaining = await tx.cartitem.findMany({ where: { cart_id: cart.cart_id } });
-    await tx.cart.update({ where: { cart_id: cart.cart_id }, data: { total_price: remaining.reduce((sum, item) => sum + item.subtotal, 0) } });
-  }
-  return { orderId: order.order_id, alreadyCompleted: false };
-});
-
 const verifyWithChapa = async (txRef: string) => {
-  const response = await axios.get(`${CHAPA_BASE_URL}/transaction/verify/${txRef}`, { headers: chapaHeaders() });
+  const response = await axios.get(
+    `${CHAPA_BASE_URL}/transaction/verify/${txRef}`,
+    { headers: chapaHeaders() }
+  );
   return response.data?.data?.status === 'success';
 };
 
 /** Starts payment from a cart snapshot. No order, stock, or cart state is changed here. */
-export const initializePayment = async (req: AuthRequest, res: Response): Promise<void> => {
+export const initializePayment = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     if (!validateChapaKeys(res)) return;
-    const buyer = await prisma.buyer.findUnique({ where: { user_id: req.user!.user_id }, include: { user: true } });
-    if (!buyer) { res.status(404).json({ success: false, message: 'Buyer not found' }); return; }
-    const cart = await prisma.cart.findFirst({ where: { buyer_id: buyer.buyer_id }, include: { cartitem: { include: { product: true } } } });
-    if (!cart || cart.cartitem.length === 0) { res.status(400).json({ success: false, message: 'Cart is empty' }); return; }
+    const town = typeof req.body.town === 'string' ? req.body.town.trim() : '';
+    const address =
+      typeof req.body.address === 'string' ? req.body.address.trim() : '';
+    if (!town || town.length > 100 || !address || address.length > 500) {
+      res
+        .status(400)
+        .json({ success: false, message: 'Enter a delivery town and address' });
+      return;
+    }
+    const buyer = await prisma.buyer.findUnique({
+      where: { user_id: req.user!.user_id },
+      include: { user: true },
+    });
+    if (!buyer) {
+      res.status(404).json({ success: false, message: 'Buyer not found' });
+      return;
+    }
+    const cart = await prisma.cart.findFirst({
+      where: { buyer_id: buyer.buyer_id },
+      include: {
+        cartitem: {
+          include: {
+            product: {
+              include: {
+                factory: {
+                  select: {
+                    factory_id: true,
+                    factory_name: true,
+                    uses_own_delivery: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!cart || cart.cartitem.length === 0) {
+      res.status(400).json({ success: false, message: 'Cart is empty' });
+      return;
+    }
     for (const item of cart.cartitem) {
       if (item.quantity < 1 || item.product.stock_quantity < item.quantity) {
-        res.status(400).json({ success: false, message: `Insufficient stock for ${item.product.product_name}` }); return;
+        res
+          .status(400)
+          .json({
+            success: false,
+            message: `Insufficient stock for ${item.product.product_name}`,
+          });
+        return;
       }
     }
-    const snapshot: CartSnapshotItem[] = cart.cartitem.map((item) => ({ product_id: item.product_id, quantity: item.quantity, price: item.product.price, subtotal: item.product.price * item.quantity }));
-    const amount = snapshot.reduce((sum, item) => sum + item.subtotal, 0);
+    const snapshot: CartSnapshotItem[] = cart.cartitem.map((item) => ({
+      product_id: item.product_id,
+      quantity: item.quantity,
+      price: item.product.price,
+      subtotal: item.product.price * item.quantity,
+    }));
+    const quote = await getDeliveryQuote(cart.cartitem, town, address);
+    if (!quote.available) {
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: `Delivery is unavailable for ${town} from: ${quote.missing_sellers.join(', ')}`,
+        });
+      return;
+    }
+    const amount = quote.total;
     const txRef = `TX-${uuidv4()}`;
-    await prisma.paymentattempt.create({ data: { buyer_id: buyer.buyer_id, amount, transaction_reference: txRef, cart_snapshot: snapshot } });
-    const chapaResponse = await axios.post(`${CHAPA_BASE_URL}/transaction/initialize`, {
-      amount: amount.toFixed(2), currency: 'ETB', email: buyer.user.email,
-      first_name: buyer.user.full_name.split(' ')[0], last_name: buyer.user.full_name.split(' ').slice(1).join(' ') || 'N/A',
-      tx_ref: txRef, callback_url: CHAPA_CALLBACK_URL,
-      return_url: `${CLIENT_URL}/payment/result?tx_ref=${encodeURIComponent(txRef)}`,
-      customization: { title: 'Product showcase', description: 'Payment for your cart' },
-    }, { headers: chapaHeaders() });
+    const deliverySnapshot: DeliverySnapshot = {
+      town,
+      address,
+      deliveries: quote.deliveries,
+    };
+    await prisma.paymentattempt.create({
+      data: {
+        buyer_id: buyer.buyer_id,
+        amount,
+        transaction_reference: txRef,
+        cart_snapshot: JSON.stringify(snapshot),
+        delivery_snapshot: JSON.stringify(deliverySnapshot),
+      },
+    });
+    const chapaResponse = await axios.post(
+      `${CHAPA_BASE_URL}/transaction/initialize`,
+      {
+        amount: amount.toFixed(2),
+        currency: 'ETB',
+        email: buyer.user.email,
+        first_name: buyer.user.full_name.split(' ')[0],
+        last_name: buyer.user.full_name.split(' ').slice(1).join(' ') || 'N/A',
+        tx_ref: txRef,
+        callback_url: CHAPA_CALLBACK_URL,
+        return_url: `${CLIENT_URL}/payment/result?tx_ref=${encodeURIComponent(txRef)}`,
+        customization: {
+          title: 'Product showcase',
+          description: 'Payment for your cart',
+        },
+      },
+      { headers: chapaHeaders() }
+    );
     const checkoutUrl = chapaResponse.data?.data?.checkout_url;
     if (!checkoutUrl) throw new Error('Chapa did not return a checkout URL');
     res.json({ success: true, checkout_url: checkoutUrl, tx_ref: txRef });
   } catch (error: any) {
-    console.error('InitializePayment error:', error.response?.data || error.message);
-    res.status(500).json({ success: false, message: error.response?.data?.message || 'Failed to initialize payment' });
+    console.error(
+      'InitializePayment error:',
+      error.response?.data || error.message
+    );
+    res
+      .status(500)
+      .json({
+        success: false,
+        message:
+          error.response?.data?.message || 'Failed to initialize payment',
+      });
   }
 };
 
-export const verifyPayment = async (req: AuthRequest, res: Response): Promise<void> => {
+export const verifyPayment = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { tx_ref: txRef } = req.params;
     if (!validateChapaKeys(res)) return;
-    const attempt = await prisma.paymentattempt.findUnique({ where: { transaction_reference: txRef } });
-    const buyer = await prisma.buyer.findUnique({ where: { user_id: req.user!.user_id } });
-    if (!attempt || !buyer || attempt.buyer_id !== buyer.buyer_id) { res.status(404).json({ success: false, message: 'Payment not found' }); return; }
-    if (attempt.payment_status === 'COMPLETED') { const done = await completePayment(txRef); res.json({ success: true, status: 'COMPLETED', order_id: done.orderId }); return; }
-    if (!(await verifyWithChapa(txRef))) { res.json({ success: false, status: 'PENDING', message: 'Payment has not been completed yet' }); return; }
+    const attempt = await prisma.paymentattempt.findUnique({
+      where: { transaction_reference: txRef },
+    });
+    const buyer = await prisma.buyer.findUnique({
+      where: { user_id: req.user!.user_id },
+    });
+    if (!attempt || !buyer || attempt.buyer_id !== buyer.buyer_id) {
+      res.status(404).json({ success: false, message: 'Payment not found' });
+      return;
+    }
+    if (attempt.payment_status === 'COMPLETED') {
+      const done = await completePayment(txRef);
+      res.json({ success: true, status: 'COMPLETED', order_id: done.orderId });
+      return;
+    }
+    if (!(await verifyWithChapa(txRef))) {
+      res.json({
+        success: false,
+        status: 'PENDING',
+        message: 'Payment has not been completed yet',
+      });
+      return;
+    }
     const completed = await completePayment(txRef);
-    res.json({ success: true, status: 'COMPLETED', order_id: completed.orderId });
+    res.json({
+      success: true,
+      status: 'COMPLETED',
+      order_id: completed.orderId,
+    });
   } catch (error: any) {
     console.error('VerifyPayment error:', error.message);
-    res.status(400).json({ success: false, message: error.message === 'INSUFFICIENT_STOCK' ? 'An item sold out before payment completed. Your payment will be reviewed.' : 'Failed to verify payment' });
+    res
+      .status(400)
+      .json({
+        success: false,
+        message:
+          error.message === 'INSUFFICIENT_STOCK'
+            ? 'An item sold out before payment completed. Your payment will be reviewed.'
+            : 'Failed to verify payment',
+      });
   }
 };
 
 /** Chapa's server callback has no user token, so it always verifies with Chapa first. */
-export const chapaCallback = async (req: Request, res: Response): Promise<void> => {
+export const chapaCallback = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const txRef = (req.query.tx_ref || req.body?.tx_ref) as string | undefined;
-    if (!txRef) { res.status(400).json({ success: false, message: 'tx_ref is required' }); return; }
+    if (!txRef) {
+      res.status(400).json({ success: false, message: 'tx_ref is required' });
+      return;
+    }
     if (!validateChapaKeys(res)) return;
     if (await verifyWithChapa(txRef)) await completePayment(txRef);
     res.status(200).json({ success: true });
   } catch (error) {
     console.error('ChapaCallback error:', error);
-    res.status(500).json({ success: false, message: 'Failed to process Chapa callback' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to process Chapa callback' });
   }
 };
 
-export const getAllPayments = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getAllPayments = async (
+  _req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { status, page = '1', limit = '20' } = _req.query;
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
-    const where: Record<string, unknown> = status ? { payment_status: status } : {};
+    const where: Record<string, unknown> = status
+      ? { payment_status: status }
+      : {};
     const [payments, total] = await Promise.all([
-      prisma.payment.findMany({ where, skip, take: parseInt(limit as string), include: { order: { include: { buyer: { include: { user: { select: { full_name: true, email: true } } } } } } }, orderBy: { payment_date: 'desc' } }),
+      prisma.payment.findMany({
+        where,
+        skip,
+        take: parseInt(limit as string),
+        include: {
+          order: {
+            include: {
+              buyer: {
+                include: { user: { select: { full_name: true, email: true } } },
+              },
+            },
+          },
+        },
+        orderBy: { payment_date: 'desc' },
+      }),
       prisma.payment.count({ where }),
     ]);
-    res.json({ success: true, payments, pagination: { total, page: parseInt(page as string), totalPages: Math.ceil(total / parseInt(limit as string)) } });
-  } catch (error) { console.error('GetAllPayments error:', error); res.status(500).json({ success: false, message: 'Failed to fetch payments' }); }
+    res.json({
+      success: true,
+      payments,
+      pagination: {
+        total,
+        page: parseInt(page as string),
+        totalPages: Math.ceil(total / parseInt(limit as string)),
+      },
+    });
+  } catch (error) {
+    console.error('GetAllPayments error:', error);
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to fetch payments' });
+  }
 };
 
 /**
  * GET /api/payments/settlements
  * Returns all settlement records with factory and order info for the admin dashboard.
  */
-export const getSettlements = async (_req: AuthRequest, res: Response): Promise<void> => {
+export const getSettlements = async (
+  _req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { page = '1', limit = '50', factory_id, status } = _req.query;
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -245,8 +514,16 @@ export const getSettlements = async (_req: AuthRequest, res: Response): Promise<
         include: {
           order: {
             include: {
-              buyer: { include: { user: { select: { full_name: true, email: true } } } },
-              payment: { select: { transaction_reference: true, payment_status: true, payment_date: true } },
+              buyer: {
+                include: { user: { select: { full_name: true, email: true } } },
+              },
+              payment: {
+                select: {
+                  transaction_reference: true,
+                  payment_status: true,
+                  payment_date: true,
+                },
+              },
             },
           },
           factory: { select: { factory_name: true, location: true } },
@@ -277,7 +554,9 @@ export const getSettlements = async (_req: AuthRequest, res: Response): Promise<
     });
   } catch (error) {
     console.error('GetSettlements error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch settlements' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to fetch settlements' });
   }
 };
 
@@ -285,7 +564,10 @@ export const getSettlements = async (_req: AuthRequest, res: Response): Promise<
  * GET /api/payments/orders/:orderId/settlements
  * Returns the seller breakdown for a specific order.
  */
-export const getOrderSettlements = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getOrderSettlements = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const { orderId } = req.params;
     const settlements = await prisma.settlement.findMany({
@@ -298,6 +580,8 @@ export const getOrderSettlements = async (req: AuthRequest, res: Response): Prom
     res.json({ success: true, settlements });
   } catch (error) {
     console.error('GetOrderSettlements error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch order settlements' });
+    res
+      .status(500)
+      .json({ success: false, message: 'Failed to fetch order settlements' });
   }
 };

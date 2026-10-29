@@ -18,10 +18,13 @@ export default function OrderDetailPage() {
   if (isLoading) return <PageLoader />;
   if (!data?.order)
     return (
-      <div className="text-center py-16 text-slate-500">{t('orderNotFound')}</div>
+      <div className="text-center py-16 text-slate-500">
+        {t('orderNotFound')}
+      </div>
     );
 
   const { order } = data;
+  const deliveries = order.orderdelivery ?? [];
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -97,6 +100,65 @@ export default function OrderDetailPage() {
           <span>ETB {Number(order.total_amount).toLocaleString()}</span>
         </div>
       </div>
+
+      {deliveries.length > 0 && (
+        <div className="card p-6 mb-6">
+          <h2 className="font-semibold text-slate-800 mb-4">
+            {t('deliveryTracking')}
+          </h2>
+          <div className="space-y-4">
+            {deliveries.map(
+              (delivery: {
+                order_delivery_id: number;
+                seller_name: string;
+                provider_type: string;
+                town: string;
+                address: string;
+                delivery_fee: number;
+                tracking_code: string;
+                status: string;
+                driver: {
+                  full_name: string;
+                  phone_number: string | null;
+                } | null;
+              }) => (
+                <div
+                  key={delivery.order_delivery_id}
+                  className="border-b border-slate-100 last:border-0 pb-4 last:pb-0"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-medium text-slate-800">
+                      {delivery.seller_name}
+                    </p>
+                    <StatusBadge status={delivery.status} />
+                  </div>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {t(
+                      delivery.provider_type === 'FACTORY'
+                        ? 'factoryDelivery'
+                        : 'platformDelivery'
+                    )}{' '}
+                    · {delivery.town} · ETB{' '}
+                    {Number(delivery.delivery_fee).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-slate-600 mt-1">
+                    {delivery.address}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {t('trackingCode')}: {delivery.tracking_code}
+                  </p>
+                  {delivery.driver && (
+                    <p className="text-sm text-slate-500 mt-1">
+                      {delivery.driver.full_name} ·{' '}
+                      {delivery.driver.phone_number}
+                    </p>
+                  )}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Payment Info */}
       {order.payment && (

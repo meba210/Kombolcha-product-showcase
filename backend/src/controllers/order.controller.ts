@@ -116,6 +116,12 @@ export const getBuyerOrders = async (
           },
         },
         payment: true,
+        orderdelivery: {
+          include: {
+            factory: { select: { factory_name: true } },
+            driver: true,
+          },
+        },
       },
       orderBy: { order_date: 'desc' },
     });
@@ -167,6 +173,7 @@ export const getAllOrders = async (
             include: { user: { select: { full_name: true, email: true } } },
           },
           orderitem: {
+            where: factoryId ? { product: { factory_id: factoryId } } : {},
             include: {
               product: {
                 include: {
@@ -181,6 +188,14 @@ export const getAllOrders = async (
             where: factoryId ? { factory_id: factoryId } : {},
             include: {
               factory: { select: { factory_id: true, factory_name: true } },
+            },
+          },
+          orderdelivery: {
+            where: factoryId ? { factory_id: factoryId } : {},
+            select: {
+              factory_id: true,
+              delivery_fee: true,
+              provider_type: true,
             },
           },
         },
@@ -215,11 +230,43 @@ export const updateOrderStatus = async (
     const { id } = req.params;
     const { order_status } = req.body;
 
+    if (
+      !['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].includes(
+        order_status
+      )
+    ) {
+      res.status(400).json({ success: false, message: 'Invalid order status' });
+      return;
+    }
+
+    let factoryId: number | null = null;
+    if (req.user!.role === 'FACTORY') {
+      const factory = await prisma.factory.findUnique({
+        where: { user_id: req.user!.user_id },
+      });
+      if (!factory) {
+        res.status(404).json({ success: false, message: 'Factory not found' });
+        return;
+      }
+      factoryId = factory.factory_id;
+    }
+
     const order = await prisma.order.findUnique({
       where: { order_id: parseInt(id) },
+      include: {
+        orderitem: { include: { product: { select: { factory_id: true } } } },
+      },
     });
     if (!order) {
       res.status(404).json({ success: false, message: 'Order not found' });
+      return;
+    }
+
+    if (
+      factoryId !== null &&
+      !order.orderitem.some((item) => item.product.factory_id === factoryId)
+    ) {
+      res.status(403).json({ success: false, message: 'Access denied' });
       return;
     }
 
@@ -251,6 +298,17 @@ export const getOrderById = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    let factoryId: number | null = null;
+    if (req.user!.role === 'FACTORY') {
+      const factory = await prisma.factory.findUnique({
+        where: { user_id: req.user!.user_id },
+      });
+      if (!factory) {
+        res.status(404).json({ success: false, message: 'Factory not found' });
+        return;
+      }
+      factoryId = factory.factory_id;
+    }
 
     const order = await prisma.order.findUnique({
       where: { order_id: parseInt(id) },
@@ -263,6 +321,7 @@ export const getOrderById = async (
           },
         },
         orderitem: {
+          where: factoryId ? { product: { factory_id: factoryId } } : {},
           include: {
             product: {
               include: {
@@ -273,11 +332,39 @@ export const getOrderById = async (
           },
         },
         payment: true,
+        orderdelivery: {
+          where: factoryId ? { factory_id: factoryId } : {},
+          include: {
+            factory: { select: { factory_name: true } },
+            driver: true,
+          },
+        },
       },
     });
 
     if (!order) {
       res.status(404).json({ success: false, message: 'Order not found' });
+      return;
+    }
+
+    if (req.user!.role === 'BUYER') {
+      const buyer = await prisma.buyer.findUnique({
+        where: { user_id: req.user!.user_id },
+      });
+      if (!buyer || order.buyer_id !== buyer.buyer_id) {
+        res.status(403).json({ success: false, message: 'Access denied' });
+        return;
+      }
+    } else if (req.user!.role === 'FACTORY') {
+      const belongsToFactory =
+        factoryId !== null &&
+        order.orderitem.some((item) => item.product.factory_id === factoryId);
+      if (!belongsToFactory) {
+        res.status(403).json({ success: false, message: 'Access denied' });
+        return;
+      }
+    } else if (req.user!.role !== 'ADMIN') {
+      res.status(403).json({ success: false, message: 'Access denied' });
       return;
     }
 

@@ -79,9 +79,12 @@ model factory {
   latitude        Float?
   longitude       Float?
   approval_status String       @default("PENDING")
+  uses_own_delivery Boolean     @default(false)
   user            user         @relation(fields: [user_id], references: [user_id], onDelete: Cascade, map: "Factory_user_id_fkey")
   product         product[]
   settlement      settlement[]
+  deliveryzone    deliveryzone[]
+  orderdelivery   orderdelivery[]
 }
 
 model message {
@@ -113,6 +116,7 @@ model order {
   orderitem    orderitem[]
   payment      payment?
   settlement   settlement[]
+  orderdelivery orderdelivery[]
 
   @@index([buyer_id], map: "Order_buyer_id_fkey")
 }
@@ -150,7 +154,8 @@ model paymentattempt {
   buyer_id             Int
   amount               Float
   transaction_reference String  @unique(map: "PaymentAttempt_transaction_reference_key")
-  cart_snapshot        Json
+  cart_snapshot        String   @db.LongText
+  delivery_snapshot    String?  @db.LongText
   payment_status       String   @default("PENDING")
   created_at           DateTime @default(now())
   buyer                buyer    @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade, map: "PaymentAttempt_buyer_id_fkey")
@@ -211,6 +216,55 @@ model user {
   message_message_sender_idTouser   message[] @relation("message_sender_idTouser")
 }
 
+model deliveryzone {
+  delivery_zone_id Int      @id @default(autoincrement())
+  provider_type    String
+  provider_key     String
+  factory_id       Int?
+  town             String
+  fee              Float
+  is_active        Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  factory          factory? @relation(fields: [factory_id], references: [factory_id], onDelete: Cascade)
+
+  @@unique([provider_key, town])
+  @@index([provider_type, town, is_active])
+  @@index([factory_id])
+}
+
+model deliverydriver {
+  delivery_driver_id Int             @id @default(autoincrement())
+  full_name          String
+  phone_number       String?
+  is_active          Boolean         @default(true)
+  created_at         DateTime        @default(now())
+  orderdelivery      orderdelivery[]
+}
+
+model orderdelivery {
+  order_delivery_id Int             @id @default(autoincrement())
+  order_id          Int
+  factory_id        Int?
+  provider_type     String
+  seller_name       String
+  town              String
+  address           String               @db.VarChar(500)
+  delivery_fee      Float
+  status            String          @default("PENDING")
+  tracking_code     String          @unique
+  driver_id         Int?
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
+  order             order           @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  factory           factory?        @relation(fields: [factory_id], references: [factory_id], onDelete: SetNull)
+  driver            deliverydriver? @relation(fields: [driver_id], references: [delivery_driver_id], onDelete: SetNull)
+
+  @@index([order_id])
+  @@index([factory_id, status])
+  @@index([driver_id])
+}
+
 // Per-seller settlement record created when a payment is completed.
 // One row per seller (factory or admin platform) per order.
 model settlement {
@@ -220,9 +274,11 @@ model settlement {
   factory_id         Int?
   /// Sum of orderitem.subtotal for this seller in this order
   gross_amount       Float
+  /// Delivery fee allocated to this seller for this order
+  delivery_amount    Float    @default(0)
   commission_rate    Float    @default(0.10)
   commission_amount  Float
-  /// gross_amount - commission_amount
+  /// gross_amount + delivery_amount - commission_amount
   net_amount         Float
   /// PENDING | PAID
   settlement_status  String   @default("PENDING")

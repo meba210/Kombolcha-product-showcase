@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Trash2,
   Plus,
@@ -75,6 +75,7 @@ export default function CartPage() {
   const { t } = useTranslation();
   const { cart, setCart } = useCartStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Which item is pending removal — { id, name } or null
   const [pendingRemove, setPendingRemove] = useState<{
@@ -95,6 +96,7 @@ export default function CartPage() {
     try {
       const res = await api.put(`/cart/item/${itemId}`, { quantity });
       setCart(res.data.cart);
+      queryClient.setQueryData(['cart'], res.data);
     } catch {
       toast.error(t('failedUpdateQuantity'));
     }
@@ -105,6 +107,7 @@ export default function CartPage() {
     try {
       const res = await api.delete(`/cart/item/${pendingRemove.id}`);
       setCart(res.data.cart);
+      queryClient.setQueryData(['cart'], res.data);
       toast.success(t('itemRemoved'));
     } catch {
       toast.error(t('failedRemoveItem'));
@@ -293,7 +296,9 @@ export default function CartPage() {
               </div>
               <div className="flex justify-between text-sm text-slate-600">
                 <span>{t('delivery')}</span>
-                <span className="text-green-600 font-medium">{t('free')}</span>
+                <span className="text-slate-500 font-medium">
+                  {t('deliveryCalculatedAtCheckout')}
+                </span>
               </div>
               <div className="border-t border-slate-100 pt-3 flex justify-between font-bold text-slate-900">
                 <span>{t('total')}</span>
