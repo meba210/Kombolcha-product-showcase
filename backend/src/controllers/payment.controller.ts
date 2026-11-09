@@ -358,6 +358,14 @@ export const initializePayment = async (
     if (!checkoutUrl) throw new Error('Chapa did not return a checkout URL');
     res.json({ success: true, checkout_url: checkoutUrl, tx_ref: txRef });
   } catch (error: any) {
+    const providerMessage = error.response?.data?.message;
+    if (providerMessage?.email) {
+      res.status(400).json({
+        success: false,
+        message: 'Your account email is invalid. Update it in your profile and try again.',
+      });
+      return;
+    }
     console.error(
       'InitializePayment error:',
       error.response?.data || error.message

@@ -10,6 +10,7 @@ export default function ProfilePage() {
   const { user, updateUser } = useAuthStore();
   const [form, setForm] = useState({
     full_name: user?.full_name || '',
+    email: user?.email || '',
     phone_number: '',
     address: '',
   });
@@ -20,10 +21,14 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       const res = await api.put('/users/profile', form);
-      updateUser({ full_name: res.data.user.full_name });
+      updateUser({
+        full_name: res.data.user.full_name,
+        email: res.data.user.email,
+      });
       toast.success(t('profileUpdated'));
-    } catch {
-      toast.error(t('profileUpdateFailed'));
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || t('profileUpdateFailed'));
     } finally {
       setLoading(false);
     }
@@ -63,7 +68,14 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('email')}</label>
-            <input value={user?.email || ''} disabled className="input-field bg-slate-50 text-slate-500" />
+            <input
+              type="email"
+              required
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="input-field"
+              placeholder={t('email')}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('phoneNumber')}</label>

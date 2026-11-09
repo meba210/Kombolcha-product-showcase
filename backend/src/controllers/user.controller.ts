@@ -72,11 +72,11 @@ export const updateUserStatus = async (req: AuthRequest, res: Response): Promise
 
 export const updateProfile = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { full_name, phone_number, address } = req.body;
+    const { full_name, email, phone_number, address } = req.body;
 
     const user = await prisma.user.update({
       where: { user_id: req.user!.user_id },
-      data: { full_name, phone_number },
+      data: { full_name, email, phone_number },
       select: { user_id: true, full_name: true, email: true, phone_number: true, role: true },
     });
 
@@ -88,7 +88,12 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     res.json({ success: true, user });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+      res.status(409).json({ success: false, message: 'Email already registered' });
+      return;
+    }
+    console.error('UpdateProfile error:', error);
     res.status(500).json({ success: false, message: 'Failed to update profile' });
   }
 };
