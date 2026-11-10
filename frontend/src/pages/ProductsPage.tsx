@@ -1,15 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from '../hooks/useDebounce';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, Sparkles, X } from 'lucide-react';
 import api from '../lib/api';
 import ProductCard, { Product } from '../components/ProductCard';
 import { PageLoader } from '../components/LoadingSpinner';
 import { useTranslation } from 'react-i18next';
+import { useAuthStore } from '../store/authStore';
 
 export default function ProductsPage() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuthStore();
+  const isBuyer = isAuthenticated && user?.role === 'BUYER';
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const debouncedSearch = useDebounce(search, 500);
@@ -18,6 +22,41 @@ export default function ProductsPage() {
   const [maxPrice, setMaxPrice] = useState('');
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const lastLoggedSearch = useRef('');
+
+  const logBuyerSearch = useMutation({
+    mutationFn: (keyword: string) => api.post('/recommendations/log', { search_keyword: keyword }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['search-bar-recommendations', user?.user_id] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
+    },
+  });
+
+  const { data: searchRecommendations, isFetching: isFetchingSearchRecommendations } = useQuery({
+    queryKey: ['search-bar-recommendations', user?.user_id, debouncedSearch.trim(), categoryId],
+    queryFn: () => api.get('/recommendations', {
+      params: {
+        top_n: 4,
+        only_search_history: true,
+        ...(categoryId ? { category_id: categoryId } : {}),
+        ...(debouncedSearch.trim() ? { query: debouncedSearch.trim() } : {}),
+      },
+    }).then((res) => res.data),
+    enabled: isBuyer,
+    staleTime: 0,
+  });
+
+  useEffect(() => {
+    const keyword = debouncedSearch.trim();
+    if (!isBuyer || keyword.length < 2) {
+      lastLoggedSearch.current = '';
+      return;
+    }
+    const normalized = keyword.toLocaleLowerCase();
+    if (lastLoggedSearch.current === normalized) return;
+    lastLoggedSearch.current = normalized;
+    logBuyerSearch.mutate(keyword);
+  }, [debouncedSearch, isBuyer, logBuyerSearch.mutate]);
 
 useEffect(() => {
   setPage(1);
@@ -41,9 +80,10 @@ useEffect(() => {
   //   queryKey: ['products', search, categoryId, minPrice, maxPrice, page],
   //   queryFn: () => api.get(`/products?${queryParams}`).then((r) => r.data),
   // });
-const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
   queryKey: ['products', debouncedSearch, categoryId, minPrice, maxPrice, page],
-  queryFn: () =>
+      enabled: !(isBuyer && Boolean(debouncedSearch.trim())),
+      queryFn: () =>
     api
       .get('/products', {
         params: queryParams,
@@ -148,8 +188,36 @@ const { data, isLoading } = useQuery({
         </div>
       )}
 
+      {isBuyer && searchRecommendations?.based_on_search_history &&
+        searchRecommendations.recommendations?.length > 0 && (
+          <section className="mb-8" aria-labelledby="search-recommendations-heading">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles size={18} className="text-primary-600" />
+              <h2 id="search-recommendations-heading" className="text-lg font-semibold text-slate-900">
+                {t('basedOnSearches')}
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {searchRecommendations.recommendations.map((product: Product) => (
+                <ProductCard key={`search-recommendation-${product.product_id}`} product={product} />
+              ))}
+            </div>
+          </section>
+        )}
+
+      {isBuyer && debouncedSearch.trim() && !isFetchingSearchRecommendations &&
+        !searchRecommendations?.recommendations?.length && (
+          <div className="card p-6 mb-8 text-center text-slate-600">
+            {t('noRecommendations')}
+          </div>
+        )}
+
       {/* Products Grid */}
-      {isLoading ? (
+      {isBuyer && debouncedSearch.trim() ? null : isError ? (
+        <div className="card p-6 text-center text-amber-800 bg-amber-50">
+          {t('aiSearchUnavailable')}
+        </div>
+      ) : isLoading ? (
         <PageLoader />
       ) : data?.products?.length === 0 ? (
         <div className="text-center py-20">

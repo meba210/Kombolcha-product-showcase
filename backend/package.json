@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "ts-node src/seed.ts"
+    "prisma:seed": "ts-node src/seed.ts",
+    "seed:products:csv:dev": "ts-node src/scripts/seed-products-from-csv.dev.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

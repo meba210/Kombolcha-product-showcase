@@ -9,7 +9,9 @@ export default function RecommendationsPage() {
   const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ['recommendations'],
-    queryFn: () => api.get('/recommendations').then((r) => r.data),
+    queryFn: () => api.get('/recommendations', {
+      params: { top_n: 4, only_search_history: true },
+    }).then((r) => r.data),
   });
 
   return (
@@ -26,7 +28,7 @@ export default function RecommendationsPage() {
 
       {isLoading ? (
         <PageLoader />
-      ) : data?.recommendations?.length === 0 ? (
+      ) : !data?.based_on_search_history || data?.recommendations?.length === 0 ? (
         <div className="text-center py-16">
           <div className="text-6xl mb-4">🔍</div>
           <h3 className="text-xl font-semibold text-slate-700 mb-2">{t('noRecommendations')}</h3>
