@@ -1,6 +1,10 @@
 import { Response } from 'express';
+import axios from 'axios';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
+
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+const AI_SEARCH_TOP_N = 100;
 
 /**
  * Get all products with optional search/filter.
@@ -42,6 +46,74 @@ export const getProducts = async (
         ...(min_price ? { gte: parseFloat(min_price as string) } : {}),
         ...(max_price ? { lte: parseFloat(max_price as string) } : {}),
       };
+    }
+
+    if (typeof search === 'string' && search.trim()) {
+      try {
+        const aiResponse = await axios.post(
+          `${AI_SERVICE_URL}/recommend`,
+          {
+            // Keep the established request fields so an already-running AI
+            // process that predates the query field can serve product search.
+            buyer_id: 1,
+            search_history: [{ keyword: search.trim(), category: null }],
+            query: search.trim(),
+            category_filter: category_id ? parseInt(category_id as string) : undefined,
+            factory_filter: factory_id ? parseInt(factory_id as string) : undefined,
+            min_price: min_price ? parseFloat(min_price as string) : undefined,
+            max_price: max_price ? parseFloat(max_price as string) : undefined,
+            top_n: AI_SEARCH_TOP_N,
+          },
+          { timeout: 60000 }
+        );
+        const rankedIds: number[] = Array.isArray(aiResponse.data.product_ids)
+          ? aiResponse.data.product_ids.filter(
+              (id: unknown): id is number => Number.isInteger(id) && Number(id) > 0
+            )
+          : [];
+
+        const exactSearchWhere = { ...where };
+        delete exactSearchWhere.OR;
+        const matches = rankedIds.length
+          ? await prisma.product.findMany({
+              where: {
+                product_id: { in: rankedIds },
+                ...exactSearchWhere,
+              },
+              include: {
+                factory: { select: { factory_name: true, location: true } },
+                category: { select: { category_name: true } },
+              },
+            })
+          : [];
+        const matchesById = new Map(matches.map((product) => [product.product_id, product]));
+        const ordered = rankedIds.flatMap((id) => {
+          const product = matchesById.get(id);
+          return product ? [product] : [];
+        });
+        const total = ordered.length;
+        const products = ordered.slice(skip, skip + take);
+
+        res.json({
+          success: true,
+          products,
+          search_mode: 'ai',
+          pagination: {
+            total,
+            page: parseInt(page as string),
+            limit: take,
+            totalPages: Math.ceil(total / take),
+          },
+        });
+        return;
+      } catch (aiError) {
+        console.error('AI product search failed:', aiError);
+        res.status(503).json({
+          success: false,
+          message: 'AI search is unavailable. Start the AI service and try again.',
+        });
+        return;
+      }
     }
 
     const [products, total] = await Promise.all([
